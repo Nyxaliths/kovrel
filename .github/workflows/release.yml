@@ -1,0 +1,148 @@
+# Builds Kovrel-Setup.exe on GitHub and, once SignPath is set up, code-signs it.
+#
+# - Push a tag vX.Y.Z  -> test, build, sign, and create a DRAFT release with the installer attached.
+# - Run it by hand     -> the same, but the installer is only kept as a workflow artifact (no release).
+#
+# Signing runs only when the repository variable SIGNPATH_ORGANIZATION_ID is set
+# (Settings › Secrets and variables › Actions). Setup steps: docs/PUBLISHING.md, section 4.
+# Every signing request waits for manual approval in SignPath (up to 1 hour here).
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the draft release
+  actions: read     # lets SignPath read this run's artifacts
+
+jobs:
+  build:
+    runs-on: windows-latest   # SignPath only signs builds from GitHub-hosted runners
+    env:
+      SIGN: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4   # for the phone page syntax check
+        with:
+          node-version: "22"
+      - run: python -m pip install -r requirements.txt
+
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path server.py -Pattern '^VERSION = "([\d.]+)"').Matches[0].Groups[1].Value
+          "version=$v" >> $env:GITHUB_OUTPUT
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$v") {
+            throw "Tag $env:GITHUB_REF_NAME does not match VERSION $v in server.py"
+          }
+
+      # The checks that don't need a real screen, sound card or desktop session.
+      - run: python tests/sec_test.py
+      - run: python tests/migrate_test.py
+      - run: python tests/remote_test.py
+      - run: python tests/update_test.py
+      - run: python tests/page_check.py
+      - run: python tests/vigem_test.py
+
+      # 1. Kovrel.exe (signed before it goes into the installer)
+      - run: python installer/build.py app
+      - name: Upload unsigned app
+        id: upload-app
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kovrel-app-unsigned
+          path: build/dist/Kovrel
+      - name: Sign Kovrel.exe
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'kovrel' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.upload-app.outputs.artifact-id }}
+          parameters: |
+            version: ${{ toJSON(steps.ver.outputs.version) }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: build/signed-app
+      - name: Use signed app
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force build/dist/Kovrel
+          Move-Item build/signed-app build/dist/Kovrel
+
+      # 2. Kovrel-Setup.exe
+      - run: python installer/build.py setup
+      - name: Upload unsigned installer
+        id: upload-setup
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kovrel-Setup-unsigned
+          path: build/Kovrel-Setup.exe
+      - name: Sign Kovrel-Setup.exe
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'kovrel' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: setup
+          github-artifact-id: ${{ steps.upload-setup.outputs.artifact-id }}
+          parameters: |
+            version: ${{ toJSON(steps.ver.outputs.version) }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: build/signed-setup
+      - name: Use signed installer
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: Copy-Item build/signed-setup/Kovrel-Setup.exe build/Kovrel-Setup.exe -Force
+
+      - name: Check signature and hash
+        id: hash
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature build/Kovrel-Setup.exe
+          "Signature: $($sig.Status) $($sig.SignerCertificate.Subject)"
+          if ($env:SIGN -eq 'true' -and $sig.Status -ne 'Valid') { throw "Installer signature is $($sig.Status)" }
+          $h = (Get-FileHash build/Kovrel-Setup.exe -Algorithm SHA256).Hash
+          "sha256=$h" >> $env:GITHUB_OUTPUT
+          "SHA-256: $h"
+
+      - name: Keep the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kovrel-Setup-${{ steps.ver.outputs.version }}
+          path: build/Kovrel-Setup.exe
+
+      - name: Draft release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          SHA256: ${{ steps.hash.outputs.sha256 }}
+        run: |
+          # Release notes = this version's part of CHANGELOG.md + the hash.
+          $lines = Get-Content CHANGELOG.md -Encoding utf8
+          $start = [array]::IndexOf($lines, "## $env:VERSION")
+          if ($start -lt 0) { throw "CHANGELOG.md has no '## $env:VERSION' section" }
+          $notes = @()
+          foreach ($l in $lines[($start + 1)..($lines.Count - 1)]) { if ($l -like '## *') { break }; $notes += $l }
+          $notes += '', "SHA-256: ``$env:SHA256``", '',
+                    '[Code signing policy](https://github.com/Nyxaliths/kovrel#code-signing-policy)'
+          $notes -join "`n" | Out-File notes.md -Encoding utf8
+          gh release create "v$env:VERSION" build/Kovrel-Setup.exe --draft --title "Kovrel $env:VERSION" --notes-file notes.md

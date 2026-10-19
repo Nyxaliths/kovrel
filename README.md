@@ -6,6 +6,17 @@ Kovrel runs a small program on your PC. Your phone opens it in the browser (scan
 and you get the PC's screen, a touchpad, a keyboard, media keys, a game controller and more.
 Everything stays between your phone and your PC.
 
+<p align="center">
+  <img src="docs/screenshot-screen.png" alt="The Screen tab: live view of the PC, a mouse pad and buttons" width="23%">
+  <img src="docs/screenshot-keyboard.png" alt="The Screen tab with the typing panel open" width="23%">
+  <img src="docs/screenshot-media.png" alt="The Media tab: now playing, volume and sleep timer" width="23%">
+</p>
+<p align="center">
+  <img src="docs/screenshot-controller.png" alt="The on-screen game controller over the PC's screen, phone held sideways" width="70%">
+</p>
+
+<sub>Screenshots use made-up data (a demo desktop, track and PC name), made with `tools/demo_server.py` and `tools/demo_windows.py`.</sub>
+
 ## Features
 
 - **Screen**: live view of the PC (about 30 fps on good Wi-Fi), tap to click, long-press to right-click,
@@ -31,6 +42,10 @@ Everything stays between your phone and your PC.
 
 Tip: in your phone's browser, use *Add to Home Screen* and Kovrel opens like an app.
 
+<p align="center">
+  <img src="docs/screenshot-pc.png" alt="The Kovrel window on the PC: QR code, address, PIN and connected phones" width="46%">
+</p>
+
 Releases up to 2.0.1 are not code-signed, so Windows may show "Windows protected your PC". Click
 **More info › Run anyway** (see the [code signing policy](#code-signing-policy) for what changes). Compare
 the file's SHA-256 with the one on the release page first if you want to be sure:
@@ -47,6 +62,10 @@ Get-FileHash .\Kovrel-Setup.exe -Algorithm SHA256
 3. With Tailscale on, open the address shown in the Remote tab on the phone (or switch the main
    window's QR code to **Away**), sign in, and click **Allow** on the PC once. Your phone saves its sign-in
    separately for each address, so do this step at home with the Tailscale address.
+
+<p align="center">
+  <img src="docs/screenshot-remote.png" alt="Kovrel settings, Remote tab: Tailscale status, remote access switch and the address to open on the phone" width="70%">
+</p>
 
 Do not forward Kovrel's port on your router. Kovrel refuses connections from the open internet on
 purpose, so it won't work that way.

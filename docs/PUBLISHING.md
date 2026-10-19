@@ -19,9 +19,12 @@ Nothing here has been done yet.
         ```
       - or rewrite the author of the existing commits (`git filter-repo --mailmap`).
 - [ ] **Copyright line**: `LICENSE` says "The Kovrel authors". Put your name or GitHub username there if you prefer.
-- [ ] **Screenshots for the README**: take them on your phone with nothing private on screen (no personal
-      PC name, music or notifications), save them as `docs/screenshot-*.png`, and add them under the title in
-      `README.md`.
+- [x] **Screenshots for the README**: done, in `docs/screenshot-*.png`, with made-up data so nothing private
+      shows. To redo them after a UI change: `py -3.12 tools\demo_server.py` (phone page at
+      http://localhost:8796, PIN printed; capture it at 390x844), `py -3.12 tools\demo_windows.py` (the two PC
+      windows, don't touch the mouse while it runs), then `py -3.12 tools\make_social_preview.py`.
+- [ ] **Social preview**: upload `docs/social-preview.png` in the repo's Settings › General › Social preview
+      (the picture shown when the link is shared).
 - [ ] **Test on your real phone** (see "Still to verify" below).
 
 ## 2. Put it on GitHub

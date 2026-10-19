@@ -1868,6 +1868,7 @@ class Handler(BaseHTTPRequestHandler):
                 data = (WEB / fname).read_bytes()
                 if fname == "index.html":
                     data = data.replace(b'href="/apple-touch-icon.png"', APPLE_ICON_INLINE)
+                    data = data.replace(b"__KOVREL_VERSION__", VERSION.encode())   # so a page can tell it is out of date
                 self._send(200, data, ctype)
             except OSError:
                 self._json(404, {"ok": False, "error": "not found"})

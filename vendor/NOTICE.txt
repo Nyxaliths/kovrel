@@ -1,0 +1,7 @@
+Kovrel bundles ViGEmClient.dll, the user-mode client library of the Virtual Gamepad
+Emulation Framework by Nefarius Software Solutions e.U. (https://github.com/nefarius/ViGEmClient),
+distributed under the MIT License. The copy came from the "vgamepad" package (MIT License,
+see LICENSE-vgamepad.txt).
+
+The ViGEmBus driver itself is NOT included or installed by Kovrel. The virtual controller
+feature only works if you install that driver yourself.

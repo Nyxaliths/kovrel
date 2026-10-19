@@ -1,0 +1,2126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1013">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kovrel">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Kovrel</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<style>
+:root {
+  /* One accent (mint, like the logo) on calm near-black surfaces. */
+  --primary: #2FD6A3; --primary-soft: #6EE7C5; --on-primary: #04291D;
+  --accent: #2FD6A3; --destructive: #F26464; --warn: #F5B342;
+  --bg: #0E1013; --card: #171A1F; --card-2: #22262D;
+  --fg: #ECEEF1; --muted-fg: #8F96A1; --border: #2A2F37; --ring: #6EE7C5;
+  --radius: 18px; --gap: 14px; --nav-h: 68px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #F3F5F7; --card: #FFFFFF; --card-2: #E9EDF1; --fg: #12161B; --muted-fg: #5B636E;
+    --border: #DCE1E7; --primary: #0B9C72; --primary-soft: #0B9C72; --on-primary: #FFFFFF;
+    --accent: #0B9C72; --destructive: #D64545; --ring: #0B9C72;
+    color-scheme: light;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--fg);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overscroll-behavior: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:is(button, input, textarea, select, a, label):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.icon { width: 22px; height: 22px; flex: none; stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+[hidden] { display: none !important; }
+body.locked { overflow: hidden; }
+
+/* ---------- shell ---------- */
+.app { display: none; height: 100%; flex-direction: column; }
+.app.on { display: flex; }
+header { display: flex; align-items: center; gap: 10px; min-height: 64px;
+  padding: calc(env(safe-area-inset-top) + 12px) 18px 8px; }
+header h1 { font-size: 24px; font-weight: 700; margin: 0; flex: 1; letter-spacing: -.02em; }
+.pill { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--muted-fg);
+  background: var(--card); border-radius: 999px; padding: 6px 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.dot.off { background: var(--warn); }
+main { flex: 1; overflow-y: auto; padding: 4px 18px calc(var(--nav-h) + env(safe-area-inset-bottom) + 24px); }
+section { display: none; flex-direction: column; gap: var(--gap); max-width: 680px; margin: 0 auto; }
+section.on { display: flex; }
+.label { font-size: 14px; font-weight: 600; color: var(--muted-fg); margin: 10px 4px -4px; }
+nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding: 6px 6px env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(14px); border-top: 1px solid var(--border); }
+nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: var(--muted-fg); text-decoration: none; font-size: 12px; font-weight: 600; transition: color .2s; }
+nav a .icon { width: 44px; height: 28px; padding: 3px 11px; border-radius: 999px; transition: background .2s; }
+nav a[aria-current="page"] { color: var(--fg); }
+nav a[aria-current="page"] .icon { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); }
+
+/* ---------- building blocks ---------- */
+.card { background: var(--card); border: 0; border-radius: var(--radius); padding: 16px; }
+.card.stack { display: flex; flex-direction: column; gap: 12px; }
+.grid { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.btn { min-height: 52px; padding: 8px 12px; border-radius: 14px; background: var(--btn-bg); border: 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600;
+  text-align: center; user-select: none; touch-action: manipulation;
+  transition: transform .1s ease-out, background .2s, color .2s; }
+/* Buttons sit one shade lighter than whatever they're on: cards on the page, buttons on cards. */
+:root, dialog, .card, .pad, .seg { --btn-bg: var(--card-2); }
+section { --btn-bg: var(--card); }
+section .card, section .seg { --btn-bg: var(--card-2); }
+.btn:hover { background: color-mix(in srgb, var(--primary) 10%, var(--btn-bg)); }
+.btn:active, .btn.pressed { transform: scale(.96); background: color-mix(in srgb, var(--primary) 24%, var(--btn-bg)); }
+.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn.danger { color: var(--destructive); }
+.btn.big { min-height: 76px; border-radius: 18px; }
+.btn.col { flex-direction: column; gap: 4px; font-size: 14px; }
+.btn[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
+.btn.icon-only { width: 52px; padding: 0; flex: none; }
+.btn:disabled { opacity: .45; cursor: default; }
+kbd { font: 600 12px/1 inherit; font-family: inherit; color: var(--muted-fg); }
+.btn[aria-pressed="true"] kbd, .btn.primary kbd { color: inherit; opacity: .75; }
+.row { display: flex; align-items: center; gap: 10px; }
+.row > input, .row > select, .row > .grow { flex: 1; min-width: 0; }
+.row > .btn { flex: none; }
+.between { justify-content: space-between; }
+.muted { color: var(--muted-fg); font-size: 14px; margin: 0; }
+.empty { color: var(--muted-fg); font-size: 15px; text-align: center; padding: 20px; }
+input[type=range] { flex: 1; accent-color: var(--primary); min-height: 44px; }
+textarea, input[type=text], input[type=password], select {
+  width: 100%; background: var(--card-2); color: var(--fg); border: 1px solid transparent;
+  border-radius: 14px; padding: 13px 15px; font: inherit; font-size: 16px; }
+section > input[type=text], section > .row > input, section > .row > select { background: var(--card); }
+:is(textarea, input, select):focus { border-color: var(--primary); outline: none; }
+select { min-height: 52px; padding: 0 14px; }
+textarea { min-height: 96px; resize: vertical; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field > span { font-size: 14px; font-weight: 600; color: var(--muted-fg); }
+.check { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; color: var(--fg); cursor: pointer; }
+.check input { width: 22px; height: 22px; accent-color: var(--primary); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 16px; background: var(--card); }
+.seg button { min-height: 44px; border: 0; border-radius: 12px; background: none; font-size: 15px; font-weight: 600; color: var(--muted-fg); }
+.seg button[aria-pressed="true"] { background: var(--card-2); color: var(--fg); }
+
+/* trackpad */
+.pad { position: relative; border-radius: var(--radius); touch-action: none; user-select: none; overflow: hidden; cursor: crosshair;
+  /* smooth matte glass like a laptop touchpad: a faint sheen and a thin edge */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fg) 5%, transparent), transparent 70%), var(--card);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 6%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--fg) 4%, transparent);
+  border: 2px solid transparent; transition: border-color .15s; }
+.pad.full { height: min(52vh, 440px); }
+.pad .hint { position: absolute; inset: auto 0 12px; text-align: center; font-size: 13px; color: var(--muted-fg); pointer-events: none; }
+.pad .scrollbar { position: absolute; top: 12px; right: 12px; bottom: 12px; width: 44px; border-radius: 12px;
+  background: var(--card-2); display: flex; align-items: center; justify-content: center; color: var(--muted-fg); }
+.pad.active { border-color: var(--primary); }
+
+/* ---------- screen tab ---------- */
+/* The Screen tab fills the page exactly: picture on top, the mouse pad takes all the room left, toolbar at the bottom. */
+#screen { height: 100%; }
+.stage { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.viewer { position: relative; background: #000; border-radius: var(--radius);
+  overflow: auto; flex: 1 1 55%; min-height: 120px; touch-action: pan-x pan-y; overscroll-behavior: contain; }
+/* The picture always fits the box (wide or portrait monitors alike); zoom makes it bigger inside the box,
+   so the controls below never move. */
+.viewer img { display: block; width: calc(var(--zoom, 1) * 100%); height: calc(var(--zoom, 1) * 100%); object-fit: contain; user-select: none;
+  -webkit-user-drag: none; -webkit-touch-callout: none; cursor: pointer; }
+.viewer-msg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; color: #B9C0C9; font-size: 15px; pointer-events: none; }
+.badge { position: sticky; float: right; top: 8px; margin: 8px 8px -30px 0; z-index: 2; pointer-events: none;
+  font-size: 12px; font-weight: 600; color: #fff; background: rgba(0,0,0,.55); border-radius: 999px; padding: 3px 9px; font-variant-numeric: tabular-nums; }
+.tapdot { position: absolute; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; pointer-events: none;
+  border: 2px solid #6EE7C5; background: rgba(47,214,163,.3); animation: tap .45s ease-out forwards; }
+.tapdot.right { border-color: #F5B342; background: rgba(245,179,66,.3); }
+@keyframes tap { from { transform: scale(.5); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+.toolbar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+/* Typing panel on the Screen tab: opens above the toolbar and the picture/pad make room for it. */
+.kbpanel { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: var(--radius);
+  background: var(--card); --btn-bg: var(--card-2); }
+.kbpanel .btn.primary { min-width: 76px; }
+.kbkeys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.kbkeys .btn { min-height: 44px; font-size: 14px; }
+.toolbar .btn { min-height: 50px; padding: 0; }
+.minirow { display: flex; gap: 10px; flex: 1 1 45%; min-height: 120px; }
+.pad.mini { flex: 1; }
+.minibtns { display: flex; flex-direction: column; gap: 10px; width: 96px; }
+.minibtns .btn { flex: 1; }
+.fs-exit { display: none; }
+.stage.fs { position: fixed; inset: 0; z-index: 50; background: #000;
+  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 8px); }
+.stage.fs .viewer { flex: 1; min-height: 0; max-height: none; border-radius: 10px; }
+.stage.fs .minirow { height: 108px; flex: none; }
+.stage.fs .pad.mini { background-color: #15181C; }
+.stage.fs .minibtns .btn { --btn-bg: #22262D; color: #ECEEF1; }
+.stage.fs .fs-exit { display: flex; position: fixed; z-index: 51; top: calc(env(safe-area-inset-top) + 16px); left: calc(env(safe-area-inset-left) + 16px);
+  background: rgba(0,0,0,.65); color: #fff; }
+/* A portrait PC monitor gets a taller picture box (and the mouse pad gives way). */
+#screen .stage.tall:not(.fs) .viewer { flex-basis: 70%; }
+#screen .stage.tall:not(.fs) .minirow { flex-basis: 30%; }
+/* Phone turned sideways: smaller header, picture on the left, mouse pad and buttons on the right. */
+@media (orientation: landscape) and (max-height: 600px) {
+  header { min-height: 44px; padding-top: calc(env(safe-area-inset-top) + 4px); padding-bottom: 4px; }
+  header h1 { font-size: 18px; }
+  #screen .stage:not(.fs) { flex-direction: row; }
+  #screen .stage:not(.fs) .viewer { flex: 1 1 62%; min-height: 0; }
+  #screen .stage:not(.fs) .minirow { flex: 1 1 38%; flex-direction: column; min-height: 0; }
+  #screen .stage:not(.fs) .minibtns { flex-direction: row; width: auto; height: 46px; flex: none; }
+  #screen .stage.tall:not(.fs) .viewer { flex-basis: 34%; }       /* portrait monitor: narrow picture, wide pad */
+  #screen .stage.tall:not(.fs) .minirow { flex-basis: 66%; }
+}
+@media (orientation: landscape) {
+  .stage.fs { flex-direction: row; }
+  .stage.fs .minirow { height: auto; width: 200px; flex-direction: column; }
+  .stage.fs .minibtns { width: auto; flex-direction: row; height: 60px; flex: none; }
+}
+
+/* ---------- media ---------- */
+.now { display: flex; gap: 16px; align-items: center; }
+.art { width: 68px; height: 68px; border-radius: 18px; flex: none; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--primary) 18%, var(--card-2)); color: var(--primary); }
+.art .icon { width: 30px; height: 30px; }
+.now .meta { min-width: 0; }
+.now .meta > * { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now b { font-size: 18px; }
+.now span { font-size: 14px; color: var(--muted-fg); }
+.vol-num { min-width: 38px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.chips .btn { min-height: 46px; padding: 0 6px; }
+
+/* ---------- lists / more ---------- */
+.item { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; }
+.item .t { flex: 1; min-width: 0; }
+.item .t > button { all: unset; cursor: pointer; display: flex; flex-direction: column; justify-content: center; width: 100%; min-height: 46px; }
+.item b { font-weight: 600; font-size: 15px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item small { font-size: 13px; color: var(--muted-fg); display: block; }
+.item.active { box-shadow: inset 3px 0 0 var(--primary); }
+.item .btn { width: 46px; min-height: 46px; padding: 0; }
+.notif b { white-space: normal; }
+.notif p { margin: 2px 0 0; font-size: 14px; color: var(--muted-fg); overflow-wrap: anywhere; }
+.tiles { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tile { all: unset; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 14px; min-height: 64px;
+  border-radius: var(--radius); background: var(--card); transition: transform .1s, background .2s; }
+.tile:hover { background: color-mix(in srgb, var(--primary) 8%, var(--card)); }
+.tile:active { transform: scale(.97); }
+.tile:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.tile .ic { width: 40px; height: 40px; border-radius: 12px; flex: none; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.tile b { font-size: 15px; font-weight: 600; line-height: 1.2; }
+.tile small { display: none; }
+.meter { display: flex; flex-direction: column; gap: 8px; }
+.meter .top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.meter .top b { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.meter .top span { font-size: 14px; color: var(--muted-fg); }
+.bar { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--primary); border-radius: 4px; transition: width .4s; }
+.bar i.hot { background: var(--warn); } .bar i.crit { background: var(--destructive); }
+.progress { height: 6px; border-radius: 3px; background: var(--card); overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--primary); }
+
+/* ---------- files, programs, sound ---------- */
+.crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 14px; color: var(--muted-fg); min-height: 30px; }
+.crumbs button { all: unset; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: var(--primary); font-weight: 600; }
+.crumbs button:focus-visible { outline: 2px solid var(--ring); }
+.crumbs button:last-child { color: var(--fg); cursor: default; }
+.item .ic2 { width: 38px; height: 38px; border-radius: 11px; flex: none; display: grid; place-items: center; background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.item.folder .t > button { cursor: pointer; }
+.slider-row { display: flex; align-items: center; gap: 10px; min-height: 58px; }
+.slider-row + .slider-row { border-top: 1px solid var(--border); }
+.slider-row .nm { width: 38%; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slider-row input[type=range] { min-width: 0; }
+.slider-row .num { width: 36px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
+.slider-row .btn { width: 44px; min-height: 44px; padding: 0; }
+.proc small b { color: var(--fg); font-weight: 600; }
+.btn[data-mod].locked { box-shadow: inset 0 -3px 0 var(--on-primary); }
+
+/* ---------- game setup ---------- */
+.game-hero { display: flex; flex-direction: column; gap: 12px; align-items: stretch; text-align: center; padding: 20px; }
+.game-hero .ctrl-art { width: 96px; height: 64px; margin: 4px auto 0; color: var(--primary); }
+.game-hero h2 { margin: 0; font-size: 20px; }
+.bind { display: flex; align-items: center; gap: 12px; min-height: 56px; }
+.bind + .bind { border-top: 1px solid var(--border); }
+.bind .glyph { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 800; font-size: 14px;
+  background: var(--card-2); }
+.bind .glyph.pill2 { border-radius: 10px; width: 48px; font-size: 12px; }
+.bind .glyph svg { width: 18px; height: 18px; }
+.bind .name { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; }
+.bind .name small { display: block; font-weight: 400; color: var(--muted-fg); font-size: 13px; }
+.bind select { width: 156px; flex: none; min-height: 46px; font-size: 15px; }
+
+/* ---------- game overlay (controller over the PC screen) ---------- */
+.play { position: fixed; inset: 0; z-index: 60; background: #000; display: none; touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden; }
+.play.on { display: block; }
+.play img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.play .msg { position: absolute; inset: 0; display: grid; place-items: center; color: #8F96A1; font-size: 15px; pointer-events: none; }
+.ptop { position: absolute; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; z-index: 3; }
+.ptop .tb { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; border: 0;
+  background: rgba(14,16,19,.6); color: #fff; padding: 0; }
+.ptop .tb[aria-pressed="true"] { background: #2FD6A3; color: #04291D; }
+.ptop .fps { font: 600 12px system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.5); border-radius: 999px; padding: 3px 9px; font-variant-numeric: tabular-nums; }
+/* Layout like a real pad: shoulders across the top corners, left stick + D-pad bottom-left,
+   right stick + face buttons bottom-right, View/Menu in the middle. Sizes scale with the
+   phone's short side (vmin) and are capped for tablets. */
+.play { --edge: max(14px, 3vw); --lsz: min(38vmin, 158px); --dsz: min(30vmin, 124px); --fsz: min(38vmin, 158px); --rsz: min(32vmin, 132px);
+  --gap2: min(4vmin, 18px); --low: calc(env(safe-area-inset-bottom) + 14px); }
+.gc { position: absolute; z-index: 2; color: #fff; touch-action: none; }
+.gbtn { position: relative; border: 2px solid rgba(255,255,255,.22); background: rgba(14,16,19,.45); color: #fff; font-weight: 800;
+  display: grid; place-items: center; padding: 0; backdrop-filter: blur(2px); transition: transform .06s, background .06s; touch-action: none; }
+.gbtn.down { background: rgba(47,214,163,.8); border-color: #6EE7C5; color: #04291D; transform: scale(.93); }
+.gbtn svg { width: 46%; height: 46%; }
+.gbtn .k { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); font: 700 8px/1 system-ui, sans-serif; color: rgba(255,255,255,.75);
+  white-space: nowrap; pointer-events: none; text-shadow: 0 1px 2px #000; }
+.shoulder { width: min(17vmin, 78px); height: min(11vmin, 44px); border-radius: 12px; font-size: 13px; }
+.shoulder .lab { margin-top: -6px; }
+.sh-l, .sh-r { top: calc(env(safe-area-inset-top) + 10px); display: flex; gap: 8px; }
+.sh-l { left: calc(env(safe-area-inset-left) + var(--edge)); }
+.sh-r { right: calc(env(safe-area-inset-right) + var(--edge)); flex-direction: row-reverse; }
+.stick { position: absolute; border-radius: 50%; background: rgba(14,16,19,.4); border: 2px solid rgba(255,255,255,.2); }
+.stick .knob { position: absolute; left: 50%; top: 50%; width: 44%; height: 44%; margin: -22% 0 0 -22%; border-radius: 50%;
+  background: rgba(47,214,163,.85); border: 2px solid rgba(255,255,255,.35); pointer-events: none; }
+.stick .cap { position: absolute; inset: auto 0 6%; text-align: center; font: 700 9px system-ui, sans-serif; color: rgba(255,255,255,.7); pointer-events: none; text-shadow: 0 1px 2px #000; }
+.lstick { width: var(--lsz); height: var(--lsz); left: calc(env(safe-area-inset-left) + var(--edge)); bottom: var(--low); }
+.dpad { position: absolute; width: var(--dsz); height: var(--dsz); bottom: calc(var(--low) - 4px);
+  left: calc(env(safe-area-inset-left) + var(--edge) + var(--lsz) + var(--gap2)); }
+.dpad .gbtn { position: absolute; width: 34%; height: 34%; border-radius: 9px; }
+.dpad .gbtn .k { bottom: 2px; }
+.dpad .t { left: 33%; top: 0; } .dpad .l { left: 0; top: 33%; } .dpad .r { right: 0; top: 33%; } .dpad .b { left: 33%; bottom: 0; }
+.face { position: absolute; width: var(--fsz); height: var(--fsz); right: calc(env(safe-area-inset-right) + var(--edge)); bottom: var(--low); }
+.face .gbtn { position: absolute; width: 34%; height: 34%; border-radius: 50%; font-size: min(5.5vmin, 22px); }
+.face .t { left: 33%; top: 0; } .face .l { left: 0; top: 33%; } .face .r { right: 0; top: 33%; } .face .b { left: 33%; bottom: 0; }
+.rstick { width: var(--rsz); height: var(--rsz); bottom: calc(var(--low) - 4px);
+  right: calc(env(safe-area-inset-right) + var(--edge) + var(--fsz) + var(--gap2)); }
+.sysbtns { left: 50%; transform: translateX(-50%); bottom: var(--low); display: flex; gap: 10px; }
+.sysbtns .gbtn { min-width: 64px; height: 34px; padding: 0 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.sysbtns .gbtn .k { display: none; }
+.rotate { position: absolute; inset: 40% 10% auto; text-align: center; color: #ECEEF1; font-size: 16px; z-index: 1;
+  background: rgba(14,16,19,.75); border-radius: 16px; padding: 16px; display: none; }
+@media (orientation: portrait) { .play .rotate { display: block; } }
+/* controller colours */
+.xbox .fa { color: #34D399; } .xbox .fb { color: #F87171; } .xbox .fx { color: #60A5FA; } .xbox .fy { color: #FBBF24; }
+.ps .fa { color: #93A5FF; } .ps .fb { color: #FF7A85; } .ps .fx { color: #F59BD6; } .ps .fy { color: #5EEAD4; }
+
+/* ---------- login / dialogs ---------- */
+.login { display: none; min-height: 100%; align-items: center; justify-content: center; padding: 28px; }
+.login.on { display: flex; }
+.login form, .login .wait { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 16px; }
+.login .wait[hidden] { display: none; }
+.login img { width: 72px; height: 72px; border-radius: 20px; }
+.login h1 { margin: 4px 0 0; font-size: 30px; letter-spacing: -.02em; }
+.login p { margin: 0; color: var(--muted-fg); font-size: 15px; }
+.login input { background: var(--card); }
+.spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--card-2); border-top-color: var(--primary); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.banner { margin: 0 18px 8px; padding: 10px 14px; border-radius: 14px; font-size: 14px; font-weight: 600;
+  background: color-mix(in srgb, var(--warn) 18%, var(--card)); color: var(--fg); }
+.pin { font-size: 30px !important; letter-spacing: .5em; text-align: center; font-weight: 700; }
+.err { color: var(--destructive); font-size: 14px; min-height: 21px; }
+dialog { border: 0; border-radius: 22px; background: var(--card); color: var(--fg);
+  padding: 22px; width: min(92vw, 400px); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+dialog::backdrop { background: rgba(4,6,8,.6); backdrop-filter: blur(3px); }
+dialog h3 { margin: 0; font-size: 20px; }
+dialog p { margin: 0; color: var(--muted-fg); font-size: 14px; }
+dialog form { display: flex; flex-direction: column; gap: 14px; }
+.toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px); z-index: 100;
+  transform: translate(-50%, 10px); opacity: 0; pointer-events: none; background: var(--fg); color: var(--bg);
+  padding: 11px 18px; border-radius: 14px; font-size: 15px; font-weight: 600; transition: opacity .2s, transform .2s; max-width: 90vw; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (min-width: 768px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation-duration: .01s !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cast" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="i-resume" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></symbol>
+  <symbol id="i-zoomin" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></symbol>
+  <symbol id="i-zoomout" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11h6"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-mouse" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 6v4"/></symbol>
+  <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M7 15h10"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-game" viewBox="0 0 24 24"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6l-.7 6.2A2.9 2.9 0 0 0 7 17l1.5-1.5a2 2 0 0 1 1.4-.5h4.2a2 2 0 0 1 1.4.5L17 17a2.9 2.9 0 0 0 5-2.2l-.7-6.2a4 4 0 0 0-4-3.6z"/></symbol>
+  <symbol id="i-windows" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18M7 21h10"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l7-8z"/><path d="M16 5v14M20 5v14"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 20 9 12l10-8z"/><path d="M5 19V5"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 4 10 8-10 8z"/><path d="M19 5v14"/></symbol>
+  <symbol id="i-volup" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-monitoroff" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M4 4l16 12"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-4A13 13 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24"><path d="m8 9 4-4 4 4M8 15l4 4 4-4"/></symbol>
+  <symbol id="i-grab" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2L7 14.2 2 9.3l6.9-1z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14l4-4"/><path d="M3.3 19a10 10 0 1 1 17.4 0"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-lockpin" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+  <symbol id="ps-cross" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19" stroke-width="3"/></symbol>
+  <symbol id="ps-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke-width="3"/></symbol>
+  <symbol id="ps-square" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="1" stroke-width="3"/></symbol>
+  <symbol id="ps-tri" viewBox="0 0 24 24"><path d="M12 4 21 19H3z" stroke-width="3"/></symbol>
+  <symbol id="d-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6" stroke-width="3"/></symbol>
+  <symbol id="d-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-width="3"/></symbol>
+  <symbol id="d-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6" stroke-width="3"/></symbol>
+  <symbol id="d-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke-width="3"/></symbol>
+</svg>
+
+<!-- ================= Login ================= -->
+<div class="login" id="login">
+  <form id="loginForm" autocomplete="off">
+    <img src="/icon-192.png" alt="">
+    <h1>Kovrel</h1>
+    <p id="loginHint">Enter the 6-digit PIN shown in the Kovrel window on your PC.</p>
+    <label class="field"><span id="secretLabel">PIN</span>
+      <input id="pinInput" class="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" required aria-describedby="loginErr"></label>
+    <label class="field"><span>Name for this device</span>
+      <input id="devName" type="text" maxlength="40" required></label>
+    <div class="err" id="loginErr" role="alert"></div>
+    <button class="btn primary" type="submit" id="loginBtn">Connect</button>
+    <p class="muted" id="secureNote" style="text-align:center"></p>
+  </form>
+  <div class="wait" id="loginWait" hidden>
+    <img src="/icon-192.png" alt="">
+    <h1>Approve on your PC</h1>
+    <p>Kovrel is asking the PC to allow <b id="waitName">this device</b>. Click <b>Allow</b> in the window that just appeared on the PC.</p>
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="muted" id="waitLeft"></p>
+    <button class="btn" type="button" id="waitCancel">Cancel</button>
+  </div>
+</div>
+
+<!-- ================= App ================= -->
+<div class="app" id="app">
+  <header>
+    <button class="btn icon-only" id="backBtn" aria-label="Back" hidden><svg class="icon"><use href="#i-back"/></svg></button>
+    <h1 id="title">Screen</h1>
+    <span class="pill" aria-live="polite"><span class="dot" id="dot"></span><span id="host">Connected</span></span>
+  </header>
+  <div class="banner" id="pausedBar" role="status" hidden>Remote control is paused on the PC. You can look, but not control.</div>
+
+  <main>
+    <!-- ---------- Screen ---------- -->
+    <section id="screen">
+      <div class="stage" id="stage">
+        <div class="viewer" id="viewer">
+          <span class="badge" id="fps">–</span>
+          <img id="screenImg" alt="Live view of your PC screen. Tap to click, long-press to right-click.">
+          <div class="viewer-msg" id="screenMsg">Connecting to screen…</div>
+        </div>
+        <div class="minirow">
+          <div class="pad mini" id="miniPad" role="application" aria-label="Mouse pad. Drag to move the cursor, tap to click."><div class="hint">Mouse pad</div></div>
+          <div class="minibtns">
+            <button class="btn" data-click="left">Left</button>
+            <button class="btn" data-click="right">Right</button>
+          </div>
+        </div>
+        <button class="btn icon-only fs-exit" id="fsExit" aria-label="Exit full screen"><svg class="icon"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="kbpanel" id="kbPanel" hidden>
+        <div class="row">
+          <input id="kbText" type="text" placeholder="Type, then Send" aria-label="Text to type on the PC" autocomplete="off" autocapitalize="sentences" enterkeyhint="send">
+          <button class="btn primary" id="kbSend">Send</button>
+        </div>
+        <div class="kbkeys">
+          <button class="btn" data-kb="enter">Enter</button>
+          <button class="btn" data-kb="backspace" aria-label="Backspace">⌫</button>
+          <button class="btn" data-kb="esc">Esc</button>
+          <button class="btn" data-kb="tab">Tab</button>
+          <button class="btn" data-kb="space">Space</button>
+        </div>
+      </div>
+      <div class="toolbar" role="toolbar" aria-label="Screen controls">
+        <button class="btn" id="pauseBtn" aria-label="Pause screen" title="Pause"><svg class="icon"><use href="#i-pause"/></svg></button>
+        <button class="btn" id="zoomOut" aria-label="Zoom out" title="Zoom out"><svg class="icon"><use href="#i-zoomout"/></svg></button>
+        <button class="btn" id="zoomIn" aria-label="Zoom in" title="Zoom in"><svg class="icon"><use href="#i-zoomin"/></svg></button>
+        <button class="btn" id="fsBtn" aria-label="Full screen" title="Full screen"><svg class="icon"><use href="#i-expand"/></svg></button>
+        <button class="btn" data-sound aria-pressed="false" aria-label="PC sound" title="PC sound"><svg class="icon"><use href="#i-sound"/></svg></button>
+        <button class="btn" id="kbToggle" aria-pressed="false" aria-controls="kbPanel" aria-label="Keyboard" title="Keyboard"><svg class="icon"><use href="#i-keyboard"/></svg></button>
+        <button class="btn" id="screenSettings" aria-label="Screen settings" title="Settings"><svg class="icon"><use href="#i-gear"/></svg></button>
+      </div>
+    </section>
+
+    <!-- ---------- Game (setup) ---------- -->
+    <section id="game">
+      <div class="card game-hero">
+        <svg class="ctrl-art" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-game"/></svg>
+        <h2>Play PC games from your phone</h2>
+        <p class="muted">An on-screen controller over your PC's screen. Turn your phone sideways.</p>
+        <button class="btn primary big" id="playBtn"><svg class="icon"><use href="#i-game"/></svg>Start playing</button>
+      </div>
+
+      <div class="label">Profile</div>
+      <div class="card stack">
+        <label class="field"><span>Saved layouts (kept on the PC)</span><select id="profileSel"></select></label>
+        <div class="grid g3">
+          <button class="btn" id="profSave">Save new</button>
+          <button class="btn" id="profUpdate">Update</button>
+          <button class="btn danger" id="profDelete">Delete</button>
+        </div>
+        <div class="grid g2">
+          <button class="btn" id="profShare"><svg class="icon"><use href="#i-copy"/></svg>Share</button>
+          <button class="btn" id="profImport"><svg class="icon"><use href="#i-download"/></svg>Import</button>
+        </div>
+        <p class="muted" id="profHint">Give a profile a game name (like "Brawlhalla") and it switches on by itself when that game is in front on your PC.</p>
+      </div>
+
+      <div class="label">Controller</div>
+      <div class="seg" role="group" aria-label="Controller style">
+        <button data-style="xbox" aria-pressed="true">Xbox</button>
+        <button data-style="ps">PlayStation</button>
+      </div>
+      <div class="seg" role="group" aria-label="What the controller sends to the PC">
+        <button data-output="keys" aria-pressed="true">Keyboard &amp; mouse</button>
+        <button data-output="pad">Virtual controller</button>
+      </div>
+      <p class="muted" id="padNote"></p>
+      <label class="field"><span>Game type</span>
+        <select id="presetSel">
+          <option value="fps">Shooter (WASD + mouse look)</option>
+          <option value="racing">Racing</option>
+          <option value="retro">Retro / emulator</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+
+      <div id="keysOnly" style="display:contents">
+        <div class="label">Sticks</div>
+        <div class="card stack">
+          <label class="row between"><span>Left stick</span>
+            <select id="lstickSel" style="width:170px;flex:none"><option value="wasd">W A S D</option><option value="arrows">Arrow keys</option><option value="off">Off</option></select></label>
+          <label class="row between"><span>Right stick</span>
+            <select id="rstickSel" style="width:170px;flex:none"><option value="mouse">Look (mouse)</option><option value="arrows">Arrow keys</option><option value="off">Off</option></select></label>
+          <label class="row"><span>Look speed</span><input id="lookSens" type="range" min="0.2" max="3" step="0.1" value="1"><kbd id="lookSensVal">1.0×</kbd></label>
+          <label class="check"><input type="checkbox" id="invertY"> Invert look up/down</label>
+        </div>
+        <div class="row between"><div class="label">Buttons</div><button class="btn" id="resetBinds" style="min-height:36px;font-size:13px">Reset</button></div>
+        <div class="card" id="bindList" style="padding:4px 14px"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="showScreen" checked> Show the PC screen behind the controller</label>
+      <p class="muted">Click into the game on the PC once so it gets the controls.</p>
+    </section>
+
+    <!-- ---------- Keys ---------- -->
+    <section id="keys">
+      <div class="card stack">
+        <label class="field"><span>Type on the PC</span>
+          <textarea id="text" placeholder="Type here, or tap the mic and talk…" autocapitalize="sentences" autocomplete="off"></textarea></label>
+        <div class="row">
+          <button class="btn icon-only" id="micBtn" aria-label="Voice typing" aria-pressed="false"><svg class="icon"><use href="#i-mic"/></svg></button>
+          <label class="check grow"><input type="checkbox" id="sendEnter"> Press Enter after</label>
+          <button class="btn primary" id="sendText"><svg class="icon"><use href="#i-send"/></svg>Send</button>
+        </div>
+      </div>
+      <div class="grid g2">
+        <button class="btn" id="clipToPc"><svg class="icon"><use href="#i-upload"/></svg>Copy to PC</button>
+        <button class="btn" id="clipFromPc"><svg class="icon"><use href="#i-download"/></svg>Copy from PC</button>
+      </div>
+      <div class="label">Modifier keys</div>
+      <div class="grid g4" id="mods">
+        <button class="btn col" data-mod="ctrl" aria-pressed="false">Ctrl</button>
+        <button class="btn col" data-mod="alt" aria-pressed="false">Alt</button>
+        <button class="btn col" data-mod="shift" aria-pressed="false">Shift</button>
+        <button class="btn col" data-mod="win" aria-pressed="false">Win</button>
+      </div>
+      <p class="muted">Tap once for your next key or tap. Double-tap to hold it.</p>
+      <div class="label">Keys</div>
+      <div class="grid g4">
+        <button class="btn" data-key="esc">Esc</button>
+        <button class="btn" data-key="tab">Tab</button>
+        <button class="btn" data-key="backspace">⌫</button>
+        <button class="btn" data-key="enter">Enter</button>
+        <button class="btn" data-key="delete">Del</button>
+        <button class="btn" data-key="space">Space</button>
+        <button class="btn" data-key="win">Win</button>
+        <button class="btn" data-key="f5">F5</button>
+        <button class="btn" data-key="home">Home</button>
+        <button class="btn" data-key="up" aria-label="Up arrow">↑</button>
+        <button class="btn" data-key="end">End</button>
+        <button class="btn" data-key="pgup">PgUp</button>
+        <button class="btn" data-key="left" aria-label="Left arrow">←</button>
+        <button class="btn" data-key="down" aria-label="Down arrow">↓</button>
+        <button class="btn" data-key="right" aria-label="Right arrow">→</button>
+        <button class="btn" data-key="pgdn">PgDn</button>
+      </div>
+      <div class="label">Shortcuts</div>
+      <div class="grid g3">
+        <button class="btn col" data-key="ctrl+c">Copy<kbd>Ctrl C</kbd></button>
+        <button class="btn col" data-key="ctrl+v">Paste<kbd>Ctrl V</kbd></button>
+        <button class="btn col" data-key="ctrl+z">Undo<kbd>Ctrl Z</kbd></button>
+        <button class="btn col" data-key="ctrl+a">Select all<kbd>Ctrl A</kbd></button>
+        <button class="btn col" data-key="alt+tab">Switch app<kbd>Alt Tab</kbd></button>
+        <button class="btn col" data-key="win+d">Desktop<kbd>Win D</kbd></button>
+        <button class="btn col" data-key="win+tab">Task view<kbd>Win Tab</kbd></button>
+        <button class="btn col" data-key="win+shift+s">Snip<kbd>Win ⇧ S</kbd></button>
+        <button class="btn col danger" data-key="alt+f4" data-confirm="Close the active window?">Close<kbd>Alt F4</kbd></button>
+      </div>
+      <div class="row">
+        <input id="combo" type="text" placeholder="Any combo, e.g. ctrl+shift+t" aria-label="Custom key combo" autocapitalize="off" autocomplete="off" spellcheck="false">
+        <button class="btn" id="sendCombo">Press</button>
+      </div>
+    </section>
+
+    <!-- ---------- Media ---------- -->
+    <section id="media">
+      <div class="card now">
+        <div class="art" aria-hidden="true"><svg class="icon"><use href="#i-music"/></svg></div>
+        <div class="meta"><b id="npTitle">Nothing playing</b><span id="npArtist">Play something on your PC</span><span id="npApp"></span></div>
+      </div>
+      <div class="grid g3">
+        <button class="btn big" data-key="prev" aria-label="Previous track"><svg class="icon"><use href="#i-prev"/></svg></button>
+        <button class="btn big primary" data-key="playpause" id="playPause" aria-label="Play or pause"><svg class="icon"><use href="#i-play"/></svg></button>
+        <button class="btn big" data-key="next" aria-label="Next track"><svg class="icon"><use href="#i-next"/></svg></button>
+      </div>
+      <div class="card row">
+        <button class="btn icon-only" id="muteBtn" aria-label="Mute" aria-pressed="false"><svg class="icon"><use href="#i-volup"/></svg></button>
+        <input id="volSlider" type="range" min="0" max="100" step="1" value="50" aria-label="Volume">
+        <span class="vol-num" id="volNum">–</span>
+      </div>
+      <div class="grid g4">
+        <button class="btn col" data-key="left"><kbd>←</kbd>Back</button>
+        <button class="btn col" data-key="space"><kbd>Space</kbd>Pause</button>
+        <button class="btn col" data-key="right"><kbd>→</kbd>Forward</button>
+        <button class="btn col" data-key="f"><kbd>F</kbd>Full</button>
+      </div>
+      <div class="label">Sleep timer</div>
+      <div class="card stack">
+        <label class="row between"><span>When time's up</span>
+          <select id="timerAction" style="width:170px;flex:none">
+            <option value="sleep">Sleep the PC</option><option value="shutdown">Shut down</option>
+            <option value="monitor_off">Screen off</option><option value="lock">Lock</option>
+          </select></label>
+        <div class="chips">
+          <button class="btn" data-timer="15">15m</button><button class="btn" data-timer="30">30m</button>
+          <button class="btn" data-timer="60">1h</button><button class="btn" data-timer="90">1.5h</button>
+        </div>
+        <div class="row" id="timerActive" hidden>
+          <svg class="icon" aria-hidden="true"><use href="#i-timer"/></svg><span id="timerText" class="grow"></span>
+          <button class="btn" id="timerCancel" style="min-height:40px">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- More ---------- -->
+    <section id="more">
+      <div class="tiles">
+        <button class="tile" data-go="touchpad"><span class="ic"><svg class="icon"><use href="#i-mouse"/></svg></span><b>Touchpad</b><small>Big mouse pad</small></button>
+        <button class="tile" data-go="buttons"><span class="ic"><svg class="icon"><use href="#i-star"/></svg></span><b>My buttons</b><small>Shortcuts & macros</small></button>
+        <button class="tile" data-go="windows"><span class="ic"><svg class="icon"><use href="#i-windows"/></svg></span><b>Apps</b><small>Windows & launch</small></button>
+        <button class="tile" data-go="programs"><span class="ic"><svg class="icon"><use href="#i-list"/></svg></span><b>Programs</b><small>See & close</small></button>
+        <button class="tile" data-go="files"><span class="ic"><svg class="icon"><use href="#i-folder"/></svg></span><b>Files</b><small>Send & receive</small></button>
+        <button class="tile" data-go="sound"><span class="ic"><svg class="icon"><use href="#i-sound"/></svg></span><b>Sound & display</b><small>Per-app volume, brightness</small></button>
+        <button class="tile" data-go="status"><span class="ic"><svg class="icon"><use href="#i-gauge"/></svg></span><b>PC status</b><small>CPU, RAM, GPU</small></button>
+        <button class="tile" data-go="notifs"><span class="ic"><svg class="icon"><use href="#i-bell"/></svg></span><b>Notifications</b><small>From your PC</small></button>
+        <button class="tile" data-go="power"><span class="ic"><svg class="icon"><use href="#i-power"/></svg></span><b>Power</b><small>Lock, sleep, wake</small></button>
+        <button class="tile" data-go="settings"><span class="ic"><svg class="icon"><use href="#i-user"/></svg></span><b>Settings</b><small>Device & sign out</small></button>
+      </div>
+    </section>
+
+    <!-- ---------- Programs (task manager) ---------- -->
+    <section id="programs">
+      <input id="procQuery" type="text" placeholder="Search programs…" aria-label="Search programs" autocapitalize="off" autocomplete="off" spellcheck="false">
+      <div class="grid" id="procList"><div class="empty">Loading…</div></div>
+      <p class="muted">Your programs, biggest first. Windows' own parts are hidden.</p>
+    </section>
+
+    <!-- ---------- Sound & display ---------- -->
+    <section id="sound">
+      <div class="label">Volume per app</div>
+      <div class="card" id="mixList" style="padding:4px 14px"><div class="empty">Loading…</div></div>
+      <p class="muted">Only apps playing sound show up. Main volume is on the Media tab.</p>
+      <div class="label">Brightness</div>
+      <div class="card" id="brightList" style="padding:4px 14px"><div class="empty">Loading…</div></div>
+    </section>
+
+    <!-- ---------- Touchpad ---------- -->
+    <section id="touchpad">
+      <div class="pad full" id="pad" role="application" aria-label="Trackpad. Drag to move, tap to click, two-finger tap to right click, drag the right strip to scroll.">
+        <div class="scrollbar" aria-hidden="true"><svg class="icon"><use href="#i-scroll"/></svg></div>
+        <div class="hint">Tap = click · 2-finger tap = right click · 2-finger drag = scroll</div>
+      </div>
+      <div class="grid g3">
+        <button class="btn big" data-click="left">Left</button>
+        <button class="btn big" data-click="middle">Middle</button>
+        <button class="btn big" data-click="right">Right</button>
+      </div>
+      <div class="grid g2">
+        <button class="btn" id="dragBtn" aria-pressed="false"><svg class="icon"><use href="#i-grab"/></svg>Hold click</button>
+        <button class="btn" data-click="left" data-action="double">Double click</button>
+      </div>
+      <label class="card row"><span>Speed</span><input id="sens" type="range" min="0.5" max="4" step="0.1" value="1.8"><kbd id="sensVal">1.8×</kbd></label>
+    </section>
+
+    <!-- ---------- My buttons ---------- -->
+    <section id="buttons">
+      <div class="grid g3" id="scList"></div>
+      <div class="grid g2">
+        <button class="btn primary" id="scAdd"><svg class="icon"><use href="#i-plus"/></svg>Add button</button>
+        <button class="btn" id="scEdit" aria-pressed="false"><svg class="icon"><use href="#i-trash"/></svg>Remove</button>
+      </div>
+      <button class="btn danger" id="macroStop" hidden>Stop the running macro</button>
+      <p class="muted">A button can open a site or app, press keys, type text, or run several steps (a macro).</p>
+    </section>
+
+    <!-- ---------- Files ---------- -->
+    <section id="files">
+      <label class="btn primary big" style="cursor:pointer"><svg class="icon"><use href="#i-upload"/></svg>Send photos or files here
+        <input type="file" id="fileInput" multiple hidden></label>
+      <div class="progress" id="upProg" hidden><i></i></div>
+      <p class="muted" id="upText">Files go into the folder open below.</p>
+      <div class="row">
+        <select id="rootSel" aria-label="Shared folder"></select>
+        <button class="btn icon-only" id="refreshFiles" aria-label="Refresh files"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      </div>
+      <div class="crumbs" id="crumbs" aria-label="Current folder"></div>
+      <div class="grid" id="fileList"><div class="empty">Loading…</div></div>
+      <p class="muted">Pick shared folders on the PC: Kovrel › Settings › Sharing.</p>
+    </section>
+
+    <!-- ---------- Windows & apps ---------- -->
+    <section id="windows">
+      <div class="row between"><div class="label">Open windows</div>
+        <button class="btn icon-only" id="refreshWins" aria-label="Refresh windows"><svg class="icon"><use href="#i-refresh"/></svg></button></div>
+      <div class="grid" id="winList"><div class="empty">Loading…</div></div>
+      <div class="label">Open an app</div>
+      <div class="grid g3" id="appList"></div>
+    </section>
+
+    <!-- ---------- Status ---------- -->
+    <section id="status"><div class="grid g2" id="statusGrid"><div class="empty">Loading…</div></div></section>
+
+    <!-- ---------- Notifications ---------- -->
+    <section id="notifs"><div class="grid" id="notifList"><div class="empty">Loading…</div></div></section>
+
+    <!-- ---------- Power ---------- -->
+    <section id="power">
+      <div class="grid g2">
+        <button class="btn big col" data-power="lock"><svg class="icon"><use href="#i-lock"/></svg>Lock</button>
+        <button class="btn big col" data-power="monitor_off"><svg class="icon"><use href="#i-monitoroff"/></svg>Screen off</button>
+        <button class="btn big col" data-power="sleep" data-confirm="Put the PC to sleep? You'll need to wake it by hand."><svg class="icon"><use href="#i-moon"/></svg>Sleep</button>
+        <button class="btn big col danger" data-power="restart" data-confirm="Restart the PC in 5 seconds? Unsaved work may be lost."><svg class="icon"><use href="#i-restart"/></svg>Restart</button>
+        <button class="btn big col danger" data-power="shutdown" data-confirm="Shut down the PC in 5 seconds? Unsaved work may be lost."><svg class="icon"><use href="#i-power"/></svg>Shut down</button>
+        <button class="btn big col" data-power="cancel"><svg class="icon"><use href="#i-ban"/></svg>Cancel</button>
+      </div>
+      <div class="label">Wake another PC</div>
+      <div class="card" id="wakeList" style="padding:4px 14px"><div class="empty">No PCs added</div></div>
+      <button class="btn" id="wakeAdd"><svg class="icon"><use href="#i-plus"/></svg>Add a PC to wake</button>
+      <p class="muted">Switches on another PC on your network (it needs Wake-on-LAN turned on). A sleeping PC can't wake itself.</p>
+    </section>
+
+    <!-- ---------- Settings ---------- -->
+    <section id="settings">
+      <div class="card stack">
+        <label class="field"><span>This device's name</span>
+          <div class="row"><input id="devNameEdit" type="text" maxlength="40"><button class="btn" id="saveName">Save</button></div></label>
+      </div>
+      <div class="label">Connected now</div>
+      <div class="card" id="devList"><span class="muted">–</span></div>
+      <div class="label">Security</div>
+      <div class="card stack">
+        <div class="row between"><span>Connection</span><b id="secConn">–</b></div>
+        <div class="row between"><span>New devices</span><b>Need your OK on the PC</b></div>
+        <p class="muted">Trusted phones, the PIN or password, remote access and shared folders are managed in Kovrel › Settings on your PC.</p>
+      </div>
+      <button class="btn danger" id="logout"><svg class="icon"><use href="#i-logout"/></svg>Sign out of this device</button>
+      <p class="muted" style="text-align:center" id="verText">Kovrel</p>
+    </section>
+  </main>
+
+  <nav aria-label="Sections">
+    <a href="#screen"><svg class="icon"><use href="#i-cast"/></svg>Screen</a>
+    <a href="#game"><svg class="icon"><use href="#i-game"/></svg>Game</a>
+    <a href="#keys"><svg class="icon"><use href="#i-keyboard"/></svg>Keys</a>
+    <a href="#media"><svg class="icon"><use href="#i-music"/></svg>Media</a>
+    <a href="#more"><svg class="icon"><use href="#i-grid"/></svg>More</a>
+  </nav>
+</div>
+
+<!-- ================= Game overlay ================= -->
+<div class="play xbox" id="play" aria-label="Game controller">
+  <img id="gameImg" alt="">
+  <div class="msg" id="gameMsg" hidden></div>
+  <div class="rotate">Turn your phone sideways to play</div>
+  <div class="ptop">
+    <button class="tb" id="playExit" aria-label="Stop playing"><svg class="icon"><use href="#i-x"/></svg></button>
+    <button class="tb" data-sound aria-pressed="false" aria-label="PC sound"><svg class="icon"><use href="#i-sound"/></svg></button>
+    <span class="fps" id="gameFps">–</span>
+  </div>
+  <div class="gc sh-l">
+    <button class="gbtn shoulder" data-ctl="lt"><span class="lab">LT</span><span class="k"></span></button>
+    <button class="gbtn shoulder" data-ctl="lb"><span class="lab">LB</span><span class="k"></span></button>
+  </div>
+  <div class="gc sh-r">
+    <button class="gbtn shoulder" data-ctl="rt"><span class="lab">RT</span><span class="k"></span></button>
+    <button class="gbtn shoulder" data-ctl="rb"><span class="lab">RB</span><span class="k"></span></button>
+  </div>
+  <div class="gc stick lstick" data-stick="l"><div class="knob"></div><div class="cap" id="lcap"></div></div>
+  <div class="gc stick rstick" data-stick="r"><div class="knob"></div><div class="cap" id="rcap"></div></div>
+  <div class="gc dpad">
+    <button class="gbtn t" data-ctl="up" aria-label="D-pad up"><svg class="icon"><use href="#d-up"/></svg></button>
+    <button class="gbtn l" data-ctl="left" aria-label="D-pad left"><svg class="icon"><use href="#d-left"/></svg></button>
+    <button class="gbtn r" data-ctl="right" aria-label="D-pad right"><svg class="icon"><use href="#d-right"/></svg></button>
+    <button class="gbtn b" data-ctl="down" aria-label="D-pad down"><svg class="icon"><use href="#d-down"/></svg></button>
+  </div>
+  <div class="gc face">
+    <button class="gbtn t fy" data-ctl="y"></button>
+    <button class="gbtn l fx" data-ctl="x"></button>
+    <button class="gbtn r fb" data-ctl="b"></button>
+    <button class="gbtn b fa" data-ctl="a"></button>
+  </div>
+  <div class="gc sysbtns">
+    <button class="gbtn" data-ctl="view"></button>
+    <button class="gbtn" data-ctl="menu"></button>
+  </div>
+</div>
+
+<!-- ================= Dialogs ================= -->
+<dialog id="confirm">
+  <form method="dialog">
+    <h3>Are you sure?</h3><p id="confirmMsg"></p>
+    <div class="grid g2"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="confirmYes">Confirm</button></div>
+  </form>
+</dialog>
+
+<dialog id="screenDialog">
+  <form method="dialog">
+    <h3>Screen settings</h3>
+    <label class="field"><span>Monitor</span><select id="monitorSel"><option value="0">Main screen</option></select></label>
+    <label class="field"><span>Picture</span>
+      <select id="qualitySel"><option value="960">Fast (smoothest)</option><option value="1280">Balanced</option><option value="1920">Sharp</option></select></label>
+    <button class="btn" type="button" id="shotBtn"><svg class="icon"><use href="#i-download"/></svg>Save a full-quality screenshot</button>
+    <p>Tap the screen to click there · long-press to right-click · double-tap Left to hold it and drag with the mouse pad · use zoom, then swipe to look around.</p>
+    <button class="btn primary" value="ok">Done</button>
+  </form>
+</dialog>
+
+<dialog id="profileDialog">
+  <form method="dialog" id="profileForm">
+    <h3>Save this layout</h3>
+    <label class="field"><span>Name</span><input id="profName" type="text" maxlength="40" placeholder="e.g. Brawlhalla" required></label>
+    <label class="field"><span>Switch on automatically when this is in front on the PC <small class="muted">(optional)</small></span>
+      <input id="profMatch" type="text" maxlength="80" placeholder="e.g. Brawlhalla" autocapitalize="off" spellcheck="false"></label>
+    <p>Matches the game's window title or program name (like <b>Brawlhalla.exe</b>).</p>
+    <div class="grid g2"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="save" id="profSaveOk">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="importDialog">
+  <form method="dialog" id="importForm">
+    <h3 id="importTitle">Import a layout</h3>
+    <p id="importHelp">Paste a layout someone shared with you.</p>
+    <textarea id="importText" spellcheck="false" autocapitalize="off" style="min-height:140px;font:12px/1.4 ui-monospace,Consolas,monospace"></textarea>
+    <div class="err" id="importErr" role="alert"></div>
+    <div class="grid g2"><button class="btn" value="cancel" formnovalidate>Close</button><button class="btn primary" value="ok" id="importOk">Import</button></div>
+  </form>
+</dialog>
+
+<dialog id="wakeDialog">
+  <form method="dialog" id="wakeForm">
+    <h3>Add a PC to wake</h3>
+    <label class="field"><span>Name</span><input id="wakeName" type="text" maxlength="40" placeholder="e.g. Den PC" required></label>
+    <label class="field"><span>MAC address</span><input id="wakeMac" type="text" maxlength="17" placeholder="AA:BB:CC:DD:EE:FF" autocapitalize="characters" spellcheck="false" required></label>
+    <p>Find it on that PC: Settings › Network › your adapter › Physical address (MAC).</p>
+    <div class="err" id="wakeErr" role="alert"></div>
+    <div class="grid g2"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="save" id="wakeSave">Add</button></div>
+  </form>
+</dialog>
+
+<dialog id="scDialog">
+  <form method="dialog" id="scForm">
+    <h3>New button</h3>
+    <label class="field"><span>Name</span><input id="scName" type="text" maxlength="40" placeholder="e.g. Netflix" required></label>
+    <label class="field"><span>What it does</span>
+      <select id="scType"><option value="url">Open a website or app</option><option value="keys">Press keys</option><option value="text">Type text</option><option value="macro">Macro (several steps)</option></select></label>
+    <label class="field"><span id="scValueLabel">Website or app</span>
+      <input id="scValue" type="text" placeholder="https://www.netflix.com" autocapitalize="off" spellcheck="false" required>
+      <textarea id="scMacro" hidden spellcheck="false" autocapitalize="off" style="min-height:130px;font:13px/1.45 ui-monospace,Consolas,monospace"
+        placeholder="open https://www.youtube.com&#10;wait 2s&#10;keys ctrl+l&#10;type lofi beats&#10;keys enter"></textarea></label>
+    <p id="scMacroHelp" hidden>One step per line: <b>open</b> a site or app · <b>keys</b> ctrl+l · <b>type</b> some text · <b>click</b> left · <b>wait</b> 500 (ms) or 2s.</p>
+    <label class="field"><span>Icon</span>
+      <select id="scIcon">
+        <option value="star">Star</option><option value="globe">Website</option><option value="play">Play</option>
+        <option value="music">Music</option><option value="game">Game</option><option value="keyboard">Keys</option>
+        <option value="monitor">Screen</option><option value="folder">Folder</option><option value="rocket">Rocket</option>
+      </select></label>
+    <div class="err" id="scErr" role="alert"></div>
+    <div class="grid g2"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="save" id="scSave">Save</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+// One-time move from the app's old name (Vexari). The PC moved its settings too, so this phone
+// keeps its approval and doesn't have to sign in again.
+for (const k of ['token', 'devid', 'devname', 'sens', 'width', 'monitor', 'game', 'profile']) {
+  const v = store.get('vexari.' + k, null);
+  if (v !== null && store.get('kovrel.' + k, null) === null) store.set('kovrel.' + k, v);
+  store.del('vexari.' + k);
+}
+
+let token = store.get('kovrel.token', '');   // proves this phone was approved on the PC
+let devId = store.get('kovrel.devid', '');
+if (!/^[A-Za-z0-9_-]{6,64}$/.test(devId)) {
+  devId = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('');
+  store.set('kovrel.devid', devId);
+}
+const guessName = () => /iPhone/.test(navigator.userAgent) ? 'iPhone' : /iPad/.test(navigator.userAgent) ? 'iPad'
+  : /Android/.test(navigator.userAgent) ? 'Android phone' : 'This PC';
+let devName = store.get('kovrel.devname', '') || guessName();
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const hdrs = (extra = {}) => ({ 'Content-Type': 'application/json', 'X-Token': token, ...extra });
+const buzz = (ms = 8) => navigator.vibrate?.(ms);
+const visible = () => document.visibilityState === 'visible';
+const appOn = () => $('#app').classList.contains('on');
+
+/* ================= API ================= */
+// fetch that gives up instead of hanging forever (phones freeze requests when minimized).
+function fetchT(url, opts = {}, ms = 8000, ctrl = new AbortController()) {
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+async function api(cmd, body = {}, { quiet = false } = {}) {
+  try {
+    const r = await fetchT('/api/' + cmd, { method: 'POST', headers: hdrs(), body: JSON.stringify(body) });
+    const data = await r.json().catch(() => ({ ok: false, error: 'Bad response' }));
+    setOnline(true);
+    if (r.status === 401) { signOutLocally('You were signed out. Sign in again.'); return data; }
+    if (cmd === 'ping' || r.status === 423) setPaused(r.status === 423 || !!data.paused);
+    if (!data.ok && !quiet) toast(data.error || 'Something went wrong');
+    return data;
+  } catch {
+    if (online && !quiet) toast('Lost connection to the PC. Reconnecting…');
+    setOnline(false);
+    return { ok: false };
+  }
+}
+let online = true, hostName = 'Connected';
+function setOnline(on) {
+  online = on;
+  $('#dot').classList.toggle('off', !on);
+  $('#host').textContent = on ? hostName : 'Reconnecting…';
+}
+function setPaused(on) { $('#pausedBar').hidden = !on; }
+// Away from home (through Tailscale): say so, and start with the lighter picture unless one was picked.
+function setHost(r) {
+  hostName = r.host + (r.remote ? ' · away' : '');
+  if (r.remote && store.get('kovrel.width', null) === null && scr.width !== 960) {
+    scr.width = 960; $('#qualitySel').value = '960'; startStream();
+  }
+}
+async function reconnect() {
+  if (online || !token || !visible()) return;
+  const r = await api('ping', {}, { quiet: true });
+  if (r.ok) { setHost(r); setOnline(true); toast('Reconnected'); startStream(); }
+}
+setInterval(reconnect, 3000);
+// Quiet check-in so the PC's "Connected" list (and the paused banner) stay current even when idle.
+setInterval(() => { if (online && token && appOn() && visible()) api('ping', {}, { quiet: true }); }, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (!visible()) { gameReleaseAll(); releaseHeld(); stopAudio(true); return; }
+  online = false; reconnect();
+  if (audio.wanted) startAudio();
+  startStream();
+});
+addEventListener('online', reconnect);
+addEventListener('pageshow', e => { if (e.persisted) { online = false; reconnect(); } });
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+function confirmAction(msg) {
+  return new Promise(res => {
+    const d = $('#confirm');
+    $('#confirmMsg').textContent = msg; d.returnValue = '';
+    d.onclose = () => res(d.returnValue === 'yes');
+    d.showModal(); $('#confirmYes').focus();
+  });
+}
+
+/* ================= login ================= */
+const JSON_HDR = { 'Content-Type': 'application/json' };
+let loginKind = 'pin', serverInfo = {};
+async function loadInfo() {
+  try {
+    const r = await fetchT('/api/info', { method: 'POST', headers: JSON_HDR, body: '{}' }, 5000);
+    const d = await r.json(); serverInfo = d; loginKind = d.kind;
+    const isPin = d.kind === 'pin', inp = $('#pinInput');
+    $('#secretLabel').textContent = isPin ? 'PIN' : 'Password';
+    $('#loginHint').textContent = isPin ? 'Enter the 6-digit PIN shown in the Kovrel window on your PC.'
+      : 'Enter the password you set in the Kovrel window on your PC.';
+    inp.classList.toggle('pin', isPin); inp.maxLength = isPin ? 6 : 128;
+    inp.inputMode = isPin ? 'numeric' : 'text'; isPin ? inp.setAttribute('pattern', '[0-9]*') : inp.removeAttribute('pattern');
+    inp.autocomplete = isPin ? 'off' : 'current-password';
+    $('#secureNote').textContent = d.https ? 'Encrypted connection'
+      : 'Not encrypted. On shared Wi-Fi, turn on the secure connection in Kovrel › Settings on the PC.';
+    $('#secConn').textContent = d.https ? 'Encrypted (HTTPS)' : 'Not encrypted (HTTP)';
+    $('#verText').textContent = 'Kovrel ' + d.version;
+  } catch {}
+}
+function showLogin(msg = '') {
+  stopAudio(); closeGame(); clearInterval(waitTimer);
+  $('#app').classList.remove('on'); $('#login').classList.add('on');
+  $('#loginForm').hidden = false; $('#loginWait').hidden = true;
+  $('#loginErr').textContent = msg; $('#pinInput').value = ''; $('#devName').value = devName; $('#pinInput').focus();
+  loadInfo();
+}
+function signOutLocally(msg) { token = ''; store.del('kovrel.token'); showLogin(msg); }
+async function showApp() {
+  $('#login').classList.remove('on'); $('#app').classList.add('on');
+  loadInfo();
+  const res = await api('ping', {}, { quiet: true });
+  if (!appOn()) return; // not signed in any more -> login shown
+  if (res.ok) { setHost(res); setOnline(true); } else setOnline(false);
+  await loadMonitors();
+  route(); loadApps();
+}
+function signedIn(t) {
+  token = t; store.set('kovrel.token', t);
+  $('#loginWait').hidden = true; $('#loginForm').hidden = false; $('#pinInput').value = '';
+  showApp();
+}
+let waitTimer = null;
+function waitForApproval(req) {
+  $('#loginForm').hidden = true; $('#loginWait').hidden = false; $('#waitName').textContent = devName;
+  const started = Date.now();
+  clearInterval(waitTimer);
+  const stop = msg => { clearInterval(waitTimer); $('#loginWait').hidden = true; $('#loginForm').hidden = false; $('#loginErr').textContent = msg; $('#pinInput').value = ''; };
+  waitTimer = setInterval(async () => {
+    const left = Math.max(0, 90 - Math.round((Date.now() - started) / 1000));
+    $('#waitLeft').textContent = `Waiting… ${left}s`;
+    try {
+      const r = await fetchT('/api/login_status', { method: 'POST', headers: JSON_HDR, body: JSON.stringify({ req, device: devId }) }, 5000);
+      const d = await r.json();
+      if (d.status === 'ok') { clearInterval(waitTimer); return signedIn(d.token); }
+      if (d.status === 'denied') return stop('The PC said no. If that wasn\'t you, someone has your PIN: change it in the Kovrel window.');
+      if (d.status === 'expired') return stop('That request timed out. Try again.');
+    } catch {}
+    if (left <= 0) stop('That request timed out. Try again.');
+  }, 1500);
+}
+$('#waitCancel').addEventListener('click', () => { clearInterval(waitTimer); $('#loginWait').hidden = true; $('#loginForm').hidden = false; });
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const raw = $('#pinInput').value, secret = loginKind === 'pin' ? raw.trim() : raw;
+  devName = $('#devName').value.trim() || guessName(); store.set('kovrel.devname', devName);
+  $('#loginBtn').disabled = true; $('#loginErr').textContent = '';
+  try {
+    const r = await fetchT('/api/login', { method: 'POST', headers: JSON_HDR, body: JSON.stringify({ secret, device: devId, name: devName }) }, 8000);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) { $('#loginErr').textContent = d.error || 'Couldn\'t sign in.'; $('#pinInput').select(); return; }
+    if (d.status === 'ok') return signedIn(d.token);
+    if (d.status === 'pending') return waitForApproval(d.req);
+  } catch { $('#loginErr').textContent = 'Can\'t reach the PC. Is Kovrel running?'; }
+  finally { $('#loginBtn').disabled = false; }
+});
+$('#logout').addEventListener('click', async () => { await api('logout', {}, { quiet: true }); signOutLocally(''); });
+$('#saveName').addEventListener('click', async () => {
+  const n = $('#devNameEdit').value.trim(); if (!n) return;
+  devName = n; store.set('kovrel.devname', n);
+  await api('rename_device', { name: n }); toast('Name saved'); loadDevices();
+});
+
+/* ================= routing (hash = real back button) ================= */
+const TITLES = { screen: 'Screen', game: 'Game', keys: 'Keyboard', media: 'Media', more: 'More',
+  touchpad: 'Touchpad', buttons: 'My buttons', files: 'Files', windows: 'Apps', programs: 'Programs',
+  sound: 'Sound & display', status: 'PC status', notifs: 'Notifications', power: 'Power', settings: 'Settings' };
+const TABS = ['screen', 'game', 'keys', 'media', 'more'];
+let page = 'screen';
+function route() {
+  page = TITLES[location.hash.slice(1)] ? location.hash.slice(1) : 'screen';
+  const tab = TABS.includes(page) ? page : 'more';
+  $$('main section').forEach(s => s.classList.toggle('on', s.id === page));
+  $$('nav a').forEach(a => a.getAttribute('href') === '#' + tab ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+  $('#title').textContent = TITLES[page];
+  $('#backBtn').hidden = TABS.includes(page);
+  $('main').scrollTop = 0;
+  if (page === 'settings') $('#devNameEdit').value = devName;
+  refreshPage(true);
+  startStream();
+}
+addEventListener('hashchange', route);
+$('#backBtn').addEventListener('click', () => history.length > 1 ? history.back() : (location.hash = '#more'));
+$$('[data-go]').forEach(t => t.addEventListener('click', () => (location.hash = '#' + t.dataset.go)));
+
+// Pages that show live info refresh themselves while open.
+const REFRESH = { media: [loadMedia, 2000], status: [loadStatus, 2000], notifs: [loadNotifs, 10000],
+  windows: [loadWindows, 0], files: [() => loadFiles(), 0], buttons: [loadShortcuts, 0], settings: [loadDevices, 5000],
+  programs: [loadProcs, 3000], sound: [loadSound, 4000], power: [loadWake, 0], game: [loadProfiles, 0] };
+const lastRefresh = {};
+function refreshPage(force) {
+  const r = REFRESH[page];
+  if (!r || !appOn() || !visible()) return;
+  const [fn, every] = r;
+  if (force || (every && Date.now() - (lastRefresh[page] || 0) >= every)) { lastRefresh[page] = Date.now(); fn(); }
+}
+setInterval(() => refreshPage(false), 500);
+
+/* ================= trackpads ================= */
+let sens = parseFloat(store.get('kovrel.sens', '1.8'));
+$('#sens').value = sens; $('#sensVal').textContent = sens + '×';
+$('#sens').addEventListener('input', e => { sens = parseFloat(e.target.value); $('#sensVal').textContent = sens + '×'; store.set('kovrel.sens', sens); });
+let pend = { dx: 0, dy: 0, sy: 0 }, inflight = false;
+async function flush() {
+  if (inflight) return;
+  const mx = Math.trunc(pend.dx), my = Math.trunc(pend.dy), s = Math.trunc(pend.sy);
+  if (!mx && !my && !s) return;
+  pend.dx -= mx; pend.dy -= my; pend.sy -= s;
+  inflight = true;
+  try {
+    if (mx || my) await api('move', { dx: mx, dy: my }, { quiet: true });
+    if (s) await api('scroll', { dy: s }, { quiet: true });
+  } finally { inflight = false; flush(); }
+}
+// drag = move, tap = click, 2-finger tap = right click, 2-finger drag (or a .scrollbar strip) = scroll.
+function makePad(pad) {
+  const pts = new Map(); let gesture = null;
+  pad.addEventListener('pointerdown', e => {
+    pad.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    pad.classList.add('active');
+    if (!gesture) gesture = { start: performance.now(), moved: 0, maxPts: 0, mode: e.target.closest('.scrollbar') ? 'strip' : 'move' };
+    gesture.maxPts = Math.max(gesture.maxPts, pts.size);
+  });
+  pad.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p || !gesture) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    gesture.moved += Math.abs(dx) + Math.abs(dy);
+    if (gesture.mode === 'strip' || pts.size >= 2) pend.sy += -dy * 4 / (pts.size >= 2 ? pts.size : 1);
+    else { const accel = 1 + Math.min(Math.hypot(dx, dy) / 12, 1.5); pend.dx += dx * sens * accel; pend.dy += dy * sens * accel; }
+    flush();
+  });
+  function end(e) {
+    pts.delete(e.pointerId);
+    if (pts.size || !gesture) return;
+    pad.classList.remove('active');
+    if (performance.now() - gesture.start < 250 && gesture.moved < 10 && gesture.mode === 'move') {
+      api('click', { button: gesture.maxPts >= 2 ? 'right' : 'left', mods: useMods() }); buzz();
+    }
+    gesture = null;
+  }
+  pad.addEventListener('pointerup', end);
+  pad.addEventListener('pointercancel', end);
+  pad.addEventListener('wheel', e => { e.preventDefault(); pend.sy += -e.deltaY; flush(); }, { passive: false });
+  pad.addEventListener('contextmenu', e => e.preventDefault());
+}
+makePad($('#pad')); makePad($('#miniPad'));
+// Mouse buttons: tap = click, double-tap = hold the button down (to drag with the mouse pad),
+// tap again = let go. A single click waits a moment to see whether a second tap follows.
+const heldBtn = { left: false, right: false, middle: false }, lastTap = {}, tapTimer = {};
+const BTN_NAME = { left: 'Left', right: 'Right', middle: 'Middle' };
+function drawHeld() {
+  $$('[data-click]:not([data-action])').forEach(b => {
+    const on = heldBtn[b.dataset.click];
+    b.setAttribute('aria-pressed', on);
+    b.textContent = BTN_NAME[b.dataset.click] + (on ? ' · held' : '');
+  });
+  $('#dragBtn').setAttribute('aria-pressed', heldBtn.left);
+}
+function setHeld(btn, on) {
+  if (heldBtn[btn] === on) return;
+  heldBtn[btn] = on; drawHeld();
+  api('click', { button: btn, action: on ? 'down' : 'up' });
+}
+function releaseHeld() { for (const b in heldBtn) if (heldBtn[b]) setHeld(b, false); }
+$$('[data-click]').forEach(b => b.addEventListener('click', () => {
+  const btn = b.dataset.click;
+  if (b.dataset.action) { api('click', { button: btn, action: b.dataset.action, mods: useMods() }); buzz(); return; }
+  if (heldBtn[btn]) { setHeld(btn, false); buzz(); return; }
+  const now = Date.now();
+  if (now - (lastTap[btn] || 0) < 300) {               // second tap: hold instead of clicking twice
+    clearTimeout(tapTimer[btn]); lastTap[btn] = 0;
+    setHeld(btn, true); buzz(25); toast(`${BTN_NAME[btn]} button held · tap it again to let go`);
+    return;
+  }
+  lastTap[btn] = now; buzz();
+  tapTimer[btn] = setTimeout(() => api('click', { button: btn, mods: useMods() }), 260);
+}));
+$('#dragBtn').addEventListener('click', () => { setHeld('left', !heldBtn.left); buzz(); });
+
+/* ================= keys ================= */
+// Sticky modifiers: 0 = off, 1 = for the next key or tap only, 2 = held until tapped again.
+const mods = { ctrl: 0, alt: 0, shift: 0, win: 0 }, modLast = {};
+function drawMods() {
+  $$('[data-mod]').forEach(b => { const v = mods[b.dataset.mod]; b.setAttribute('aria-pressed', v > 0); b.classList.toggle('locked', v === 2); });
+}
+$$('[data-mod]').forEach(b => b.addEventListener('click', () => {
+  const m = b.dataset.mod, now = Date.now();
+  if (mods[m] === 0) mods[m] = 1;
+  else if (mods[m] === 1 && now - (modLast[m] || 0) < 450) mods[m] = 2;   // double-tap = hold
+  else mods[m] = 0;
+  modLast[m] = now; drawMods(); buzz();
+}));
+function useMods() {   // modifiers to send with this action; one-shot ones are used up
+  const list = Object.keys(mods).filter(k => mods[k] > 0);
+  for (const k of list) if (mods[k] === 1) mods[k] = 0;
+  drawMods();
+  return list;
+}
+function pressKey(combo) {
+  const parts = combo.split('+'), extra = useMods().filter(m => !parts.includes(m));
+  return api('key', { combo: [...extra, ...parts].join('+') });
+}
+$$('[data-key]').forEach(b => b.addEventListener('click', async () => {
+  if (b.dataset.confirm && !(await confirmAction(b.dataset.confirm))) return;
+  (b.closest('#keys') ? pressKey(b.dataset.key) : api('key', { combo: b.dataset.key })); buzz();
+}));
+$('#sendText').addEventListener('click', async () => {
+  const t = $('#text').value;
+  if (!t) return toast('Nothing to send');
+  const r = await api('type', { text: t });
+  if (r.ok && $('#sendEnter').checked) await api('key', { combo: 'enter' });
+  if (r.ok) { $('#text').value = ''; toast('Sent'); buzz(); }
+});
+$('#sendCombo').addEventListener('click', () => { const c = $('#combo').value.trim(); if (c) pressKey(c); });
+$('#combo').addEventListener('keydown', e => { if (e.key === 'Enter') $('#sendCombo').click(); });
+// Voice typing: browser speech recognition where allowed, otherwise the keyboard's own mic.
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+$('#micBtn').addEventListener('click', () => {
+  const box = $('#text');
+  if (!SR || !window.isSecureContext) { box.focus(); return toast('Tap the 🎤 on your phone keyboard to talk'); }
+  if (rec) { rec.stop(); return; }
+  rec = new SR(); rec.interimResults = false; rec.lang = navigator.language || 'en-US';
+  $('#micBtn').setAttribute('aria-pressed', 'true');
+  rec.onresult = ev => { box.value += (box.value ? ' ' : '') + [...ev.results].map(r => r[0].transcript).join(' '); };
+  rec.onend = () => { rec = null; $('#micBtn').setAttribute('aria-pressed', 'false'); };
+  rec.onerror = () => { box.focus(); toast('Tap the 🎤 on your phone keyboard to talk'); };
+  rec.start();
+});
+$('#clipToPc').addEventListener('click', async () => {
+  let t = $('#text').value;
+  if (!t) { try { t = await navigator.clipboard.readText(); } catch {} }
+  if (!t) { $('#text').focus(); return toast('Paste or type the text in the box first'); }
+  const r = await api('clipboard_set', { text: t });
+  if (r.ok) { toast('Copied to the PC'); buzz(); }
+});
+$('#clipFromPc').addEventListener('click', async () => {
+  const r = await api('clipboard_get'); if (!r.ok) return;
+  if (!r.text) return toast('PC clipboard is empty');
+  $('#text').value = r.text;
+  try { await navigator.clipboard.writeText(r.text); toast('Copied to your phone'); }
+  catch { toast('It\'s in the box above — long-press to copy'); }
+  buzz();
+});
+
+/* ================= media ================= */
+let volDragging = false, volTimer;
+async function loadMedia() {
+  const r = await api('media', {}, { quiet: true }); if (!r.ok) return;
+  const n = r.now;
+  $('#npTitle').textContent = n?.title || 'Nothing playing';
+  $('#npArtist').textContent = n ? (n.artist || '') : 'Play something on your PC';
+  $('#npApp').textContent = n?.app ? (n.playing ? 'Playing in ' : 'Paused in ') + n.app : '';
+  $('#playPause use').setAttribute('href', n?.playing ? '#i-pause' : '#i-play');
+  if (r.volume != null && !volDragging) {
+    $('#volSlider').value = r.volume; $('#volNum').textContent = r.volume;
+    $('#muteBtn').setAttribute('aria-pressed', r.muted);
+    $('#muteBtn use').setAttribute('href', r.muted ? '#i-mute' : '#i-volup');
+  }
+  showTimer(r.timer);
+}
+$('#volSlider').addEventListener('input', e => {
+  volDragging = true; $('#volNum').textContent = e.target.value;
+  clearTimeout(volTimer);
+  volTimer = setTimeout(async () => { await api('volume', { level: +e.target.value }, { quiet: true }); volDragging = false; }, 80);
+});
+$('#muteBtn').addEventListener('click', async e => {
+  const r = await api('volume', { muted: e.currentTarget.getAttribute('aria-pressed') !== 'true' });
+  if (r.ok) { $('#muteBtn').setAttribute('aria-pressed', r.muted); $('#muteBtn use').setAttribute('href', r.muted ? '#i-mute' : '#i-volup'); buzz(); }
+});
+$('#playPause').addEventListener('click', () => setTimeout(loadMedia, 400));
+const ACTION_NAMES = { sleep: 'Sleep', shutdown: 'Shut down', monitor_off: 'Screen off', lock: 'Lock' };
+function showTimer(t) {
+  $('#timerActive').hidden = !t?.active;
+  if (t?.active) {
+    const m = Math.ceil(t.seconds_left / 60);
+    $('#timerText').textContent = `${ACTION_NAMES[t.action]} in ${m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'}`;
+  }
+}
+$$('[data-timer]').forEach(b => b.addEventListener('click', async () => {
+  const r = await api('timer', { minutes: +b.dataset.timer, action: $('#timerAction').value });
+  if (r.ok) { showTimer(r.timer); toast('Timer set'); buzz(); }
+}));
+$('#timerCancel').addEventListener('click', async () => { const r = await api('timer', {}); if (r.ok) { showTimer(r.timer); toast('Timer cancelled'); } });
+
+/* ================= windows & apps ================= */
+async function loadWindows() {
+  const r = await api('windows'); if (!r.ok) return;
+  const list = $('#winList');
+  if (!r.windows.length) { list.innerHTML = '<div class="empty">No open windows</div>'; return; }
+  list.innerHTML = r.windows.map(w => `
+    <div class="card item${w.active ? ' active' : ''}" data-id="${w.id}">
+      <div class="t"><button data-act="focus" aria-label="Switch to ${esc(w.title)}"><b>${esc(w.title)}</b><small>${w.active ? 'Active' : w.minimized ? 'Minimized' : 'Tap to switch'}</small></button></div>
+      <button class="btn" data-act="minimize" aria-label="Minimize"><svg class="icon"><use href="#i-min"/></svg></button>
+      <button class="btn" data-act="maximize" aria-label="Maximize"><svg class="icon"><use href="#i-max"/></svg></button>
+      <button class="btn danger" data-act="close" aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>`).join('');
+}
+$('#winList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = +b.closest('[data-id]').dataset.id, action = b.dataset.act;
+  if (action === 'close' && !(await confirmAction('Close this window? Unsaved changes may prompt on the PC.'))) return;
+  const r = await api('window', { id, action });
+  if (r.ok) { buzz(); setTimeout(loadWindows, 400); }
+});
+$('#refreshWins').addEventListener('click', loadWindows);
+async function loadApps() {
+  const r = await api('apps', {}, { quiet: true }); if (!r.ok) return;
+  $('#appList').innerHTML = r.apps.map(a => `<button class="btn col" data-app="${esc(a)}"><svg class="icon"><use href="#i-rocket"/></svg>${esc(a)}</button>`).join('');
+}
+$('#appList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-app]'); if (!b) return;
+  const r = await api('launch', { name: b.dataset.app });
+  if (r.ok) { toast('Opening ' + b.dataset.app); buzz(); setTimeout(loadWindows, 1500); }
+});
+$$('[data-power]').forEach(b => b.addEventListener('click', async () => {
+  if (b.dataset.confirm && !(await confirmAction(b.dataset.confirm))) return;
+  const r = await api('power', { action: b.dataset.power });
+  if (r.ok) { toast(b.textContent.trim() + ' sent'); buzz(); }
+}));
+
+/* ================= my buttons ================= */
+let shortcuts = [];
+const SC_ICONS = { star: 'i-star', globe: 'i-globe', play: 'i-play', music: 'i-music', game: 'i-game',
+  keyboard: 'i-keyboard', monitor: 'i-monitor', folder: 'i-folder', rocket: 'i-rocket' };
+const editing = () => $('#scEdit').getAttribute('aria-pressed') === 'true';
+function drawShortcuts() {
+  $('#scList').innerHTML = shortcuts.length ? shortcuts.map(s => `
+    <button class="btn col${editing() ? ' danger' : ''}" data-sc="${esc(s.id)}" aria-label="${editing() ? 'Remove ' : ''}${esc(s.name)}" style="min-height:76px">
+      <svg class="icon"><use href="#${editing() ? 'i-trash' : SC_ICONS[s.icon] || 'i-star'}"/></svg>${esc(s.name)}</button>`).join('')
+    : '<div class="empty" style="grid-column:1/-1">No buttons yet</div>';
+}
+async function loadShortcuts() { const r = await api('shortcuts', {}, { quiet: true }); if (r.ok) { shortcuts = r.items; drawShortcuts(); } }
+$('#scList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-sc]'); if (!b) return;
+  const s = shortcuts.find(x => x.id === b.dataset.sc);
+  if (editing()) {
+    if (!(await confirmAction(`Remove the "${s.name}" button?`))) return;
+    const r = await api('shortcut_delete', { id: s.id }); if (r.ok) { shortcuts = r.items; drawShortcuts(); }
+    return;
+  }
+  const r = await api('shortcut_run', { id: s.id });
+  if (r.ok) {
+    toast(s.type === 'macro' ? `Running "${s.name}"…` : s.name); buzz();
+    if (s.type === 'macro') { $('#macroStop').hidden = false; setTimeout(() => ($('#macroStop').hidden = true), 60000); }
+  }
+});
+$('#macroStop').addEventListener('click', async () => { await api('macro_stop'); $('#macroStop').hidden = true; toast('Macro stopped'); });
+$('#scEdit').addEventListener('click', e => { e.currentTarget.setAttribute('aria-pressed', !editing()); drawShortcuts(); });
+const SC_HINTS = { url: ['Website or app', 'https://www.netflix.com'], keys: ['Keys to press', 'ctrl+shift+m'], text: ['Text to type', 'Hello!'],
+  macro: ['Steps (one per line)', ''] };
+$('#scType').addEventListener('change', e => {
+  const t = e.target.value, [l, ph] = SC_HINTS[t], macro = t === 'macro';
+  $('#scValueLabel').textContent = l; $('#scValue').placeholder = ph;
+  $('#scValue').hidden = macro; $('#scValue').required = !macro;
+  $('#scMacro').hidden = !macro; $('#scMacro').required = macro; $('#scMacroHelp').hidden = !macro;
+});
+$('#scAdd').addEventListener('click', () => {
+  $('#scForm').reset(); $('#scErr').textContent = ''; $('#scType').dispatchEvent(new Event('change'));
+  $('#scDialog').showModal(); $('#scName').focus();
+});
+$('#scSave').addEventListener('click', async e => {
+  e.preventDefault();
+  if (!$('#scForm').reportValidity()) return;
+  let value = $('#scType').value === 'macro' ? $('#scMacro').value.trim() : $('#scValue').value.trim();
+  if ($('#scType').value === 'url' && /^[\w-]+(\.[\w-]+)+(\/.*)?$/.test(value)) value = 'https://' + value;
+  const r = await api('shortcut_add', { name: $('#scName').value, type: $('#scType').value, value, icon: $('#scIcon').value }, { quiet: true });
+  if (!r.ok) { $('#scErr').textContent = r.error || 'Couldn\'t save'; return; }
+  shortcuts = r.items; drawShortcuts(); $('#scDialog').close(); toast('Button added');
+});
+
+/* ================= files ================= */
+const fmtSize = b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : b < 1073741824 ? (b / 1048576).toFixed(1) + ' MB' : (b / 1073741824).toFixed(1) + ' GB';
+function ago(t) {
+  const s = Math.max(0, Date.now() / 1000 - t);
+  return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + ' h ago' : Math.floor(s / 86400) + ' d ago';
+}
+const fileNav = { root: 0, path: '' };      // the folder open on the Files page
+async function loadFiles(root = fileNav.root, path = fileNav.path) {
+  const r = await api('browse', { root, path }, { quiet: true });
+  if (!r.ok) {
+    if (root !== 0 || path) { fileNav.root = 0; fileNav.path = ''; return loadFiles(0, ''); }  // folder vanished
+    $('#fileList').innerHTML = `<div class="empty">${esc(r.error || 'Couldn\'t open that folder')}</div>`; return;
+  }
+  fileNav.root = r.root; fileNav.path = r.path;
+  $('#rootSel').innerHTML = r.roots.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join('');
+  $('#rootSel').value = r.root;
+  const parts = r.path ? r.path.split('/') : [];
+  $('#crumbs').innerHTML = [`<button data-go-path="">${esc(r.roots[r.root])}</button>`,
+    ...parts.map((p, i) => `<span aria-hidden="true">›</span><button data-go-path="${esc(parts.slice(0, i + 1).join('/'))}">${esc(p)}</button>`)].join('');
+  $('#fileList').innerHTML = r.entries.length ? r.entries.map(f => f.dir ? `
+    <div class="card item folder"><span class="ic2"><svg class="icon"><use href="#i-folder"/></svg></span>
+      <div class="t"><button data-open="${esc(f.name)}" aria-label="Open folder ${esc(f.name)}"><b>${esc(f.name)}</b><small>Folder</small></button></div></div>` : `
+    <div class="card item"><div class="t"><b>${esc(f.name)}</b><small>${fmtSize(f.size)} · ${ago(f.time)}</small></div>
+      <button class="btn" data-dl="${esc(f.name)}" aria-label="Download ${esc(f.name)}"><svg class="icon"><use href="#i-download"/></svg></button></div>`).join('')
+    + (r.more ? '<div class="empty">Showing the first 500 items</div>' : '')
+    : '<div class="empty">This folder is empty</div>';
+}
+$('#refreshFiles').addEventListener('click', () => loadFiles());
+$('#rootSel').addEventListener('change', e => loadFiles(+e.target.value, ''));
+$('#crumbs').addEventListener('click', e => { const b = e.target.closest('[data-go-path]'); if (b) loadFiles(fileNav.root, b.dataset.goPath); });
+const joinPath = (a, b) => a ? a + '/' + b : b;
+$('#fileList').addEventListener('click', async e => {
+  const open = e.target.closest('[data-open]');
+  if (open) return loadFiles(fileNav.root, joinPath(fileNav.path, open.dataset.open));
+  const b = e.target.closest('[data-dl]'); if (!b) return;
+  // A one-time link lets the browser save the file itself, so big files never sit in the page's memory.
+  const r = await api('download_link', { root: fileNav.root, path: joinPath(fileNav.path, b.dataset.dl) });
+  if (!r.ok) return;
+  const a = Object.assign(document.createElement('a'), { href: r.url, download: b.dataset.dl });
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Downloading…');
+});
+$('#fileInput').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  for (const [i, f] of files.entries()) {
+    $('#upProg').hidden = false;
+    $('#upText').textContent = `Sending ${f.name} (${i + 1} of ${files.length})…`;
+    const ok = await new Promise(res => {
+      const x = new XMLHttpRequest();
+      x.open('POST', '/api/upload');
+      Object.entries(hdrs({ 'Content-Type': 'application/octet-stream', 'X-Filename': encodeURIComponent(f.name),
+        'X-Root': String(fileNav.root), 'X-Dir': encodeURIComponent(fileNav.path) })).forEach(([k, v]) => x.setRequestHeader(k, v));
+      x.upload.onprogress = ev => { if (ev.lengthComputable) $('#upProg i').style.width = (ev.loaded / ev.total * 100) + '%'; };
+      x.onload = () => res(x.status === 200); x.onerror = () => res(false);
+      x.send(f);
+    });
+    if (!ok) { toast('Couldn\'t send ' + f.name); break; }
+  }
+  $('#upProg').hidden = true; $('#upProg i').style.width = '0';
+  $('#upText').textContent = 'Files go into the folder open below.';
+  toast(files.length > 1 ? 'Files sent' : 'File sent'); buzz(); loadFiles();
+});
+
+/* ================= programs (task manager) ================= */
+let procTimer;
+async function loadProcs() {
+  const r = await api('processes', { q: $('#procQuery').value }, { quiet: true }); if (!r.ok) return;
+  $('#procList').innerHTML = r.items.length ? r.items.map(p => `
+    <div class="card item proc"><div class="t"><b>${esc(p.name)}</b>
+      <small><b>${p.mb >= 1024 ? (p.mb / 1024).toFixed(1) + ' GB' : p.mb + ' MB'}</b> memory · <b>${p.cpu}%</b> CPU${p.count > 1 ? ` · ${p.count} processes` : ''}</small></div>
+      <button class="btn danger" data-end="${esc(p.name)}" aria-label="Close ${esc(p.name)}"><svg class="icon"><use href="#i-x"/></svg></button></div>`).join('')
+    : '<div class="empty">No matching programs</div>';
+}
+$('#procQuery').addEventListener('input', () => { clearTimeout(procTimer); procTimer = setTimeout(loadProcs, 250); });
+$('#procList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-end]'); if (!b) return;
+  if (!(await confirmAction(`Close ${b.dataset.end}? Anything you haven't saved in it will be lost.`))) return;
+  const r = await api('process_kill', { name: b.dataset.end });
+  if (r.ok) { toast(`Closed ${b.dataset.end}`); buzz(); setTimeout(loadProcs, 500); }
+});
+
+/* ================= sound mixer + brightness ================= */
+let sliderBusy = 0;     // a slider is being dragged: don't redraw under the finger
+function sliderRow(kind, id, label, value, muted) {
+  return `<div class="slider-row" data-kind="${kind}" data-id="${esc(id)}">
+    <span class="nm" title="${esc(label)}">${esc(label)}</span>
+    <input type="range" min="0" max="100" value="${value}" aria-label="${esc(label)} ${kind === 'mix' ? 'volume' : 'brightness'}">
+    <span class="num">${value}</span>
+    ${kind === 'mix' ? `<button class="btn" data-mute aria-pressed="${!!muted}" aria-label="Mute ${esc(label)}"><svg class="icon"><use href="#${muted ? 'i-mute' : 'i-volup'}"/></svg></button>` : ''}
+  </div>`;
+}
+async function loadSound() {
+  if (sliderBusy) return;
+  const [m, b] = await Promise.all([api('mixer', {}, { quiet: true }), api('brightness', {}, { quiet: true })]);
+  if (sliderBusy) return;
+  if (m.ok) $('#mixList').innerHTML = m.apps.length ? m.apps.map(a => sliderRow('mix', a.name, a.label, a.volume, a.muted)).join('')
+    : '<div class="empty">No app is making sound right now</div>';
+  if (b.ok) $('#brightList').innerHTML = b.displays.length ? b.displays.map(d => sliderRow('bright', d.id, d.name, d.level)).join('')
+    : `<div class="empty">${esc(b.reason || 'No adjustable screens found')}</div>`;
+}
+const sliderTimers = {};
+$('#sound').addEventListener('input', e => {
+  const row = e.target.closest('.slider-row'); if (!row || e.target.type !== 'range') return;
+  const v = +e.target.value, key = row.dataset.kind + row.dataset.id;
+  row.querySelector('.num').textContent = v; sliderBusy++;
+  clearTimeout(sliderTimers[key]);
+  sliderTimers[key] = setTimeout(async () => {
+    await api(row.dataset.kind === 'mix' ? 'mixer_set' : 'brightness_set',
+      row.dataset.kind === 'mix' ? { name: row.dataset.id, level: v } : { id: row.dataset.id, level: v }, { quiet: true });
+    sliderBusy = Math.max(0, sliderBusy - 1);
+  }, 150);
+});
+$('#sound').addEventListener('click', async e => {
+  const b = e.target.closest('[data-mute]'); if (!b) return;
+  const row = b.closest('.slider-row'), muted = b.getAttribute('aria-pressed') !== 'true';
+  const r = await api('mixer_set', { name: row.dataset.id, muted });
+  if (r.ok) { b.setAttribute('aria-pressed', muted); b.querySelector('use').setAttribute('href', muted ? '#i-mute' : '#i-volup'); buzz(); }
+});
+
+/* ================= wake another PC ================= */
+async function loadWake() {
+  const r = await api('wake_list', {}, { quiet: true }); if (r.ok) drawWake(r.items);
+}
+function drawWake(items) {
+  $('#wakeList').innerHTML = items.length ? items.map(w => `
+    <div class="slider-row"><span class="nm" style="width:auto;flex:1" title="${esc(w.mac)}">${esc(w.name)}<br><small class="muted">${esc(w.mac)}</small></span>
+      <button class="btn primary" data-wake="${esc(w.id)}" style="width:auto;padding:0 14px">Wake</button>
+      <button class="btn danger" data-wake-del="${esc(w.id)}" aria-label="Remove ${esc(w.name)}"><svg class="icon"><use href="#i-trash"/></svg></button></div>`).join('')
+    : '<div class="empty">No PCs added</div>';
+}
+$('#wakeList').addEventListener('click', async e => {
+  const w = e.target.closest('[data-wake]'), d = e.target.closest('[data-wake-del]');
+  if (w) { const r = await api('wake', { id: w.dataset.wake }); if (r.ok) { toast('Wake signal sent'); buzz(); } }
+  if (d && await confirmAction('Remove this PC from the list?')) { const r = await api('wake_delete', { id: d.dataset.wakeDel }); if (r.ok) drawWake(r.items); }
+});
+$('#wakeAdd').addEventListener('click', () => { $('#wakeForm').reset(); $('#wakeErr').textContent = ''; $('#wakeDialog').showModal(); $('#wakeName').focus(); });
+$('#wakeSave').addEventListener('click', async e => {
+  e.preventDefault(); if (!$('#wakeForm').reportValidity()) return;
+  const r = await api('wake_add', { name: $('#wakeName').value, mac: $('#wakeMac').value.trim() }, { quiet: true });
+  if (!r.ok) { $('#wakeErr').textContent = r.error || 'Couldn\'t add it'; return; }
+  drawWake(r.items); $('#wakeDialog').close(); toast('PC added');
+});
+
+/* ================= status / notifications / devices ================= */
+const fmtUp = s => s < 3600 ? Math.floor(s / 60) + ' min' : s < 86400 ? Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' m' : Math.floor(s / 86400) + ' d ' + Math.floor(s % 86400 / 3600) + ' h';
+function meter(label, value, unit, pct, sub, hot = 75, crit = 90) {
+  const cls = pct >= crit ? 'crit' : pct >= hot ? 'hot' : '';
+  return `<div class="card meter"><div class="top"><span>${label}</span><b>${value}${unit}</b></div>
+    <div class="bar"><i class="${cls}" style="width:${Math.min(100, pct)}%"></i></div><span class="muted">${sub}</span></div>`;
+}
+async function loadStatus() {
+  const r = await api('status', {}, { quiet: true }); if (!r.ok) return;
+  let h = '';
+  if (r.cpu != null) h += meter('CPU', r.cpu, '%', r.cpu, 'Processor');
+  if (r.ram != null) h += meter('Memory', r.ram, '%', r.ram, `${r.ram_used} / ${r.ram_total} GB`);
+  if (r.gpu) { h += meter('GPU temp', r.gpu.temp, '°C', r.gpu.temp, r.gpu.name, 75, 85); h += meter('GPU load', r.gpu.load, '%', r.gpu.load, r.gpu.name); }
+  if (r.disk != null) h += meter('Disk', r.disk, '%', r.disk, `${r.disk_free} GB free`, 85, 95);
+  if (r.battery) h += meter('Battery', r.battery.percent, '%', r.battery.percent, r.battery.plugged ? 'Charging' : 'On battery', 101, 101);
+  h += `<div class="card meter"><div class="top"><span>On for</span><b style="font-size:18px">${fmtUp(r.uptime)}</b></div><span class="muted">since last start</span></div>`;
+  $('#statusGrid').innerHTML = h;
+}
+async function loadNotifs() {
+  const r = await api('notifications', {}, { quiet: true }); if (!r.ok) return;
+  $('#notifList').innerHTML = r.items.length ? r.items.map(n => `
+    <div class="card item notif"><div class="t"><small>${esc(n.app)} · ${ago(n.time)}</small><b>${esc(n.title)}</b>${n.body ? `<p>${esc(n.body)}</p>` : ''}</div></div>`).join('')
+    : '<div class="empty">No recent notifications</div>';
+}
+async function loadDevices() {
+  const r = await api('devices', {}, { quiet: true }); if (!r.ok) return;
+  $('#devList').innerHTML = r.devices.map(d => `<div class="row" style="min-height:36px"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>${esc(d.name)}${d.name === devName ? ' <span class="muted">(this one)</span>' : ''}</div>`).join('') || '<span class="muted">–</span>';
+}
+
+/* ================= PC sound ================= */
+const audio = { wanted: false, on: false, ctx: null, ctrl: null, next: 0 };
+const soundBtns = () => $$('[data-sound]').forEach(b => b.setAttribute('aria-pressed', audio.wanted));
+async function startAudio() {
+  if (audio.on) return;
+  audio.ctx ??= new (window.AudioContext || window.webkitAudioContext)();
+  try { await audio.ctx.resume(); } catch {}
+  audio.on = true; audio.wanted = true; soundBtns();
+  while (audio.on) {
+    try {
+      audio.ctrl = new AbortController();
+      const r = await fetch('/api/audio', { method: 'POST', headers: hdrs(), body: '{}', signal: audio.ctrl.signal });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Sound isn\'t available');
+      const rate = +r.headers.get('X-Rate'), ch = +r.headers.get('X-Channels');
+      const piece = Math.round(rate * 0.05) * 2 * ch; // play in 50 ms pieces
+      const reader = r.body.getReader();
+      let left = new Uint8Array(0);
+      audio.next = 0;
+      while (audio.on) {
+        const { value, done } = await reader.read(); if (done) break;
+        const buf = new Uint8Array(left.length + value.length); buf.set(left); buf.set(value, left.length);
+        let off = 0;
+        while (buf.length - off >= piece) { playPcm(buf.subarray(off, off + piece), rate, ch); off += piece; }
+        left = buf.slice(off);
+      }
+    } catch (e) {
+      if (!audio.on) break;
+      if (e.name !== 'AbortError' && !(e instanceof TypeError)) { toast(e.message); stopAudio(); break; }
+      await sleep(1000);
+    }
+  }
+}
+function playPcm(bytes, rate, ch) {
+  const ctx = audio.ctx, out = Math.min(ch, 2), frames = bytes.length / (2 * ch);
+  const ab = ctx.createBuffer(out, frames, rate);
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+  for (let c = 0; c < out; c++) { const d = ab.getChannelData(c); for (let i = 0; i < frames; i++) d[i] = dv.getInt16((i * ch + c) * 2, true) / 32768; }
+  const src = ctx.createBufferSource(); src.buffer = ab; src.connect(ctx.destination);
+  const now = ctx.currentTime;
+  if (audio.next < now + 0.03 || audio.next > now + 0.5) audio.next = now + 0.12; // resync if late/drifting
+  src.start(audio.next); audio.next += ab.duration;
+}
+function stopAudio(keepWanted = false) { audio.on = false; audio.ctrl?.abort(); if (!keepWanted) audio.wanted = false; soundBtns(); }
+$$('[data-sound]').forEach(b => b.addEventListener('click', () => {
+  if (audio.wanted) { stopAudio(); toast('PC sound off'); }
+  else { startAudio(); toast('PC sound on — turn off silent mode if you hear nothing'); }
+}));
+
+/* ================= screen stream (Screen tab and Game) ================= */
+const viewer = $('#viewer'), screenImg = $('#screenImg'), gameImg = $('#gameImg');
+// Lay the Screen tab out for the monitor's shape: portrait monitors get a taller picture box.
+screenImg.addEventListener('load', () => $('#stage').classList.toggle('tall', screenImg.naturalHeight > screenImg.naturalWidth));
+const scr = { paused: false, running: false, zoom: 1, frames: 0, url: null, key: '',
+  width: +store.get('kovrel.width', '1280'), monitor: +store.get('kovrel.monitor', '0'), gen: 0, lastFrame: 0, ctrl: null };
+$('#qualitySel').value = scr.width;
+const gameStreaming = () => game.open && game.cfg.showScreen;
+const streamTarget = () => gameStreaming() ? gameImg : screenImg;
+const streamWanted = () => appOn() && visible() && (gameStreaming() || (page === 'screen' && !scr.paused && !game.open));
+const streamKey = () => `${scr.width}|${scr.monitor}|${gameStreaming() ? 'game' : 'screen'}`;
+function stopStream() { scr.ctrl?.abort(); scr.gen++; scr.running = false; }
+
+// The PC pushes frames down ONE long-lived connection ([4-byte length][JPEG] each), so there is no
+// request per frame. If we fall behind we only ever draw the newest frame. Each run has a generation
+// number: starting a new run (a stuck connection, new settings) retires the old one.
+async function startStream() {
+  if (!streamWanted()) return;
+  if (scr.running && scr.key !== streamKey()) stopStream();                       // monitor/quality/target changed
+  if (scr.running) { if (Date.now() - scr.lastFrame < 4000) return; stopStream(); } // stalled: start over
+  const gen = ++scr.gen;
+  scr.running = true; scr.lastFrame = Date.now(); scr.key = streamKey();
+  while (gen === scr.gen && streamWanted()) {
+    const img = streamTarget(), msgEl = img === gameImg ? $('#gameMsg') : $('#screenMsg');
+    try {
+      scr.ctrl = new AbortController();
+      const r = await fetch('/api/video', { method: 'POST', headers: hdrs(), signal: scr.ctrl.signal,
+        body: JSON.stringify({ width: scr.width, monitor: scr.monitor, quality: 65, fps: 30 }) });
+      if (r.status === 401) { signOutLocally('You were signed out. Sign in again.'); break; }
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Couldn\'t start the screen');
+      const reader = r.body.getReader();
+      let buf = new Uint8Array(0);
+      while (gen === scr.gen) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const joined = new Uint8Array(buf.length + value.length); joined.set(buf); joined.set(value, buf.length); buf = joined;
+        let off = 0, newest = null, n = 0;
+        while (buf.length - off >= 4) {
+          const len = new DataView(buf.buffer, buf.byteOffset + off, 4).getUint32(0);
+          if (len > 30e6) throw new Error('The screen stream got garbled');
+          if (buf.length - off - 4 < len) break;
+          newest = buf.subarray(off + 4, off + 4 + len); off += 4 + len; n++;
+        }
+        if (newest) {
+          const url = URL.createObjectURL(new Blob([newest], { type: 'image/jpeg' })), old = scr.url;
+          scr.url = url; img.src = url;
+          if (old) setTimeout(() => URL.revokeObjectURL(old), 1000);
+          scr.frames += n; msgEl.hidden = true;
+          if (!online) setOnline(true);
+        }
+        if (off) buf = buf.slice(off);
+        scr.lastFrame = Date.now();
+      }
+    } catch (e) {
+      if (gen !== scr.gen) break;
+      const network = e instanceof TypeError || e.name === 'AbortError';
+      msgEl.hidden = false;
+      msgEl.textContent = network ? 'Reconnecting to your PC…' : e.message;
+      if (network) setOnline(false);
+    }
+    if (gen === scr.gen) await sleep(1000);   // dropped: try again shortly
+  }
+  if (gen === scr.gen) scr.running = false;
+}
+setInterval(() => {
+  $('#fps').textContent = $('#gameFps').textContent = scr.running ? `${scr.frames} fps` : 'Paused';
+  scr.frames = 0;
+  if (scr.running && !streamWanted()) stopStream();   // left the Screen tab / minimised: stop using data
+  startStream();                                       // watchdog: restart a stalled stream
+}, 1000);
+
+async function loadMonitors() {
+  const r = await api('monitors', {}, { quiet: true }); if (!r.ok) return;
+  const sel = $('#monitorSel');
+  sel.innerHTML = r.monitors.map((m, i) => `<option value="${i}">${i ? 'Screen ' + (i + 1) : 'Main screen'}</option>`).join('')
+    + (r.monitors.length > 1 ? '<option value="-1">All screens</option>' : '');
+  if (![...sel.options].some(o => +o.value === scr.monitor)) scr.monitor = 0;
+  sel.value = scr.monitor;
+}
+$('#monitorSel').addEventListener('change', e => { scr.monitor = +e.target.value; store.set('kovrel.monitor', scr.monitor); startStream(); });
+$('#qualitySel').addEventListener('change', e => { scr.width = +e.target.value; store.set('kovrel.width', scr.width); startStream(); });
+$('#screenSettings').addEventListener('click', () => $('#screenDialog').showModal());
+$('#shotBtn').addEventListener('click', async () => {
+  toast('Taking a screenshot…');
+  try {
+    const r = await fetch('/api/screenshot', { method: 'POST', headers: hdrs(), body: JSON.stringify({ monitor: scr.monitor }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Couldn\'t take the screenshot');
+    const url = URL.createObjectURL(await r.blob());
+    const a = Object.assign(document.createElement('a'), { href: url, download: `kovrel-screenshot-${Date.now()}.png` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000); toast('Screenshot saved'); buzz();
+  } catch (err) { toast(err.message); }
+});
+$('#pauseBtn').addEventListener('click', e => {
+  scr.paused = !scr.paused;
+  e.currentTarget.setAttribute('aria-label', scr.paused ? 'Resume screen' : 'Pause screen');
+  e.currentTarget.setAttribute('aria-pressed', scr.paused);
+  e.currentTarget.querySelector('use').setAttribute('href', scr.paused ? '#i-resume' : '#i-pause');
+  startStream();
+});
+function setZoom(z) { scr.zoom = Math.min(4, Math.max(1, z)); viewer.style.setProperty('--zoom', scr.zoom); }
+$('#zoomIn').addEventListener('click', () => setZoom(scr.zoom + 0.5));
+$('#zoomOut').addEventListener('click', () => setZoom(scr.zoom - 0.5));
+// Full screen is done in-page (a fixed overlay), so it works on every phone.
+function pageFullscreen(on) {
+  try {
+    if (on) document.documentElement.requestFullscreen?.()?.catch(() => {});
+    else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  } catch {}
+}
+function setFullscreen(on) {
+  $('#stage').classList.toggle('fs', on); document.body.classList.toggle('locked', on);
+  pageFullscreen(on);
+  if (on) $('#fsExit').focus();
+}
+$('#fsBtn').addEventListener('click', () => setFullscreen(true));
+$('#fsExit').addEventListener('click', () => setFullscreen(false));
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement) return;
+  if ($('#stage').classList.contains('fs')) setFullscreen(false);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#stage').classList.contains('fs')) setFullscreen(false); });
+// Typing panel: Send types the text; the phone keyboard's Enter types it and presses Enter.
+$('#kbToggle').addEventListener('click', e => {
+  const open = $('#kbPanel').hidden;
+  $('#kbPanel').hidden = !open; e.currentTarget.setAttribute('aria-pressed', open);
+  open ? $('#kbText').focus() : $('#kbText').blur();
+});
+async function kbSend(enter) {
+  const text = $('#kbText').value;
+  if (text) { const r = await api('type', { text }); if (!r.ok) return; $('#kbText').value = ''; }
+  if (enter) await pressKey('enter');
+  buzz();
+}
+$('#kbSend').addEventListener('click', () => kbSend(false));
+$('#kbText').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); kbSend(true); } });
+$$('[data-kb]').forEach(b => b.addEventListener('click', () => { pressKey(b.dataset.kb); buzz(); }));
+// Tapping the panel's buttons keeps the phone keyboard open.
+$$('#kbPanel .btn').forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
+// Where on the PC screen (0..1) a pointer is, accounting for object-fit letterboxing.
+function screenPoint(e) {
+  const r = screenImg.getBoundingClientRect();
+  const nw = screenImg.naturalWidth || 16, nh = screenImg.naturalHeight || 9;
+  const s = Math.min(r.width / nw, r.height / nh);
+  const w = nw * s, h = nh * s, ox = (r.width - w) / 2, oy = (r.height - h) / 2;
+  const x = (e.clientX - r.left - ox) / w, y = (e.clientY - r.top - oy) / h;
+  return x < 0 || x > 1 || y < 0 || y > 1 ? null : { x, y };
+}
+function tapDot(e, right) {
+  const d = document.createElement('div'); d.className = 'tapdot' + (right ? ' right' : '');
+  const r = viewer.getBoundingClientRect();
+  d.style.left = e.clientX - r.left + viewer.scrollLeft + 'px'; d.style.top = e.clientY - r.top + viewer.scrollTop + 'px';
+  viewer.appendChild(d); setTimeout(() => d.remove(), 500);
+}
+let touch = null;
+screenImg.addEventListener('pointerdown', e => {
+  const p = screenPoint(e); if (!p) return;
+  const dragging = viewer.classList.contains('drag');
+  touch = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, long: false, dragging, last: 0 };
+  if (dragging) { screenImg.setPointerCapture(e.pointerId); api('tap', { ...p, monitor: scr.monitor, action: 'down' }); return; }
+  if (e.button === 2) return;
+  touch.timer = setTimeout(() => { touch.long = true; tapDot(e, true); buzz(); api('tap', { ...p, monitor: scr.monitor, button: 'right', mods: useMods() }); }, 550);
+});
+screenImg.addEventListener('pointermove', e => {
+  if (!touch || touch.id !== e.pointerId) return;
+  if (Math.hypot(e.clientX - touch.x, e.clientY - touch.y) > 10) { touch.moved = true; clearTimeout(touch.timer); }
+  if (touch.dragging && performance.now() - touch.last > 30) {
+    const p = screenPoint(e); if (!p) return;
+    touch.last = performance.now(); api('tap', { ...p, monitor: scr.monitor, action: 'move' }, { quiet: true });
+  }
+});
+screenImg.addEventListener('pointerup', e => {
+  if (!touch || touch.id !== e.pointerId) return;
+  clearTimeout(touch.timer);
+  const p = screenPoint(e);
+  if (touch.dragging) { if (p) api('tap', { ...p, monitor: scr.monitor, action: 'up' }); else api('click', { button: 'left', action: 'up' }); }
+  else if (!touch.moved && !touch.long && p) { tapDot(e, false); buzz(); api('tap', { ...p, monitor: scr.monitor, mods: useMods() }); }
+  touch = null;
+});
+screenImg.addEventListener('pointercancel', () => { if (touch?.dragging) api('click', { button: 'left', action: 'up' }); clearTimeout(touch?.timer); touch = null; });
+screenImg.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (e.pointerType === 'touch' || touch?.long) return;
+  const p = screenPoint(e); if (!p) return;
+  tapDot(e, true); api('tap', { ...p, monitor: scr.monitor, button: 'right', mods: useMods() });
+});
+
+/* ================= game controller ================= */
+// Controls a player can bind. Labels differ per controller style.
+const CONTROLS = [
+  ['a', 'A', 'cross'], ['b', 'B', 'circle'], ['x', 'X', 'square'], ['y', 'Y', 'tri'],
+  ['lb', 'LB', 'L1'], ['rb', 'RB', 'R1'], ['lt', 'LT', 'L2'], ['rt', 'RT', 'R2'],
+  ['up', 'D-pad ↑'], ['down', 'D-pad ↓'], ['left', 'D-pad ←'], ['right', 'D-pad →'],
+  ['view', 'View', 'Create'], ['menu', 'Menu', 'Options'],
+];
+const PRESETS = {
+  fps: { lstick: 'wasd', rstick: 'mouse', bind: { a: 'space', b: 'ctrl', x: 'r', y: 'e', lb: 'shift', rb: 'q', lt: 'mouse_right', rt: 'mouse_left',
+    up: '1', down: '3', left: '4', right: '2', view: 'tab', menu: 'esc' } },
+  racing: { lstick: 'wasd', rstick: 'off', bind: { a: 'space', b: 'c', x: 'r', y: 'e', lb: 'q', rb: 'e', lt: 's', rt: 'w',
+    up: 'up', down: 'down', left: 'left', right: 'right', view: 'tab', menu: 'esc' } },
+  retro: { lstick: 'arrows', rstick: 'off', bind: { a: 'z', b: 'x', x: 'a', y: 's', lb: 'q', rb: 'w', lt: 'e', rt: 'r',
+    up: 'up', down: 'down', left: 'left', right: 'right', view: 'shift', menu: 'enter' } },
+};
+const ACTIONS = [
+  ['Mouse', [['mouse_left', 'Left click (shoot)'], ['mouse_right', 'Right click (aim)'], ['mouse_middle', 'Middle click'], ['wheel_up', 'Wheel up'], ['wheel_down', 'Wheel down']]],
+  ['Common keys', [['space', 'Space'], ['shift', 'Shift'], ['ctrl', 'Ctrl'], ['alt', 'Alt'], ['tab', 'Tab'], ['esc', 'Esc'], ['enter', 'Enter'], ['backspace', 'Backspace'],
+    ['up', 'Up arrow'], ['down', 'Down arrow'], ['left', 'Left arrow'], ['right', 'Right arrow']]],
+  ['Letters', [...'abcdefghijklmnopqrstuvwxyz'].map(c => [c, c.toUpperCase()])],
+  ['Numbers', [...'1234567890'].map(c => [c, c])],
+  ['Function keys', Array.from({ length: 12 }, (_, i) => ['f' + (i + 1), 'F' + (i + 1)])],
+];
+const ACTION_LABEL = Object.fromEntries(ACTIONS.flatMap(g => g[1]));
+const shortKey = k => !k ? '' : ({ mouse_left: 'Shoot', mouse_right: 'Aim', mouse_middle: 'M3', wheel_up: 'Wheel↑', wheel_down: 'Wheel↓',
+  up: '↑', down: '↓', left: '←', right: '→', backspace: '⌫' })[k] || (k.length === 1 ? k.toUpperCase() : k[0].toUpperCase() + k.slice(1));
+const PS_GLYPH = { a: 'ps-cross', b: 'ps-circle', x: 'ps-square', y: 'ps-tri' };
+
+const game = { open: false, cfg: null, held: new Set(), sent: new Set(), padButtons: new Set(), lookAcc: [0, 0],
+  lstick: [0, 0], rstick: [0, 0], inflight: false, timer: 0, lastBeat: 0, padKey: '', padActive: false, padFailed: false,
+  profiles: [], profileId: store.get('kovrel.profile', ''), autoProfile: '', activeTimer: 0 };
+const CFG_KEYS = ['style', 'preset', 'sens', 'invert', 'showScreen', 'lstick', 'rstick', 'bind', 'output'];
+const defaultCfg = () => ({ style: 'xbox', preset: 'fps', sens: 1, invert: false, showScreen: true, output: 'keys', ...structuredClone(PRESETS.fps) });
+function mergeCfg(c) {
+  const base = defaultCfg(), out = { ...base };
+  for (const k of CFG_KEYS) if (c && c[k] !== undefined) out[k] = c[k];
+  out.bind = { ...base.bind, ...(c?.bind || {}) };
+  return out;
+}
+function loadGameCfg() {
+  let c = null;
+  try { c = JSON.parse(store.get('kovrel.game', 'null')); } catch {}
+  game.cfg = mergeCfg(c);
+}
+const saveGameCfg = () => store.set('kovrel.game', JSON.stringify(game.cfg));
+loadGameCfg();
+// A virtual controller that couldn't be created (driver missing) falls back to keyboard & mouse.
+const outputMode = () => (game.cfg.output === 'pad' && !game.padFailed) ? 'pad' : 'keys';
+
+function glyphHtml(id) {
+  const st = game.cfg.style, c = CONTROLS.find(x => x[0] === id);
+  if (st === 'ps' && PS_GLYPH[id]) return `<svg class="icon"><use href="#${PS_GLYPH[id]}"/></svg>`;
+  return esc(st === 'ps' && c[2] ? c[2] : c[1]);
+}
+async function checkPad() {
+  const note = $('#padNote');
+  if (game.cfg.output !== 'pad') { note.textContent = ''; return; }
+  const r = await api('pad_status', {}, { quiet: true });
+  if (!r.ok) return;
+  game.padFailed = !r.available;
+  const kind = game.cfg.style === 'ps' ? 'a DualShock 4' : 'an Xbox 360 controller';
+  note.innerHTML = r.available
+    ? `Your PC will see ${kind} with real analog sticks and triggers.`
+    : `${esc(r.reason)} It's free: install ViGEmBus on the PC (<a href="https://github.com/nefarius/ViGEmBus/releases" target="_blank" rel="noopener">github.com/nefarius/ViGEmBus</a>), restart Kovrel, then try again. Until then Kovrel uses keyboard &amp; mouse.`;
+}
+function drawGameSetup() {
+  const c = game.cfg;
+  $$('[data-style]').forEach(b => b.setAttribute('aria-pressed', b.dataset.style === c.style));
+  $$('[data-output]').forEach(b => b.setAttribute('aria-pressed', b.dataset.output === c.output));
+  $('#keysOnly').style.display = c.output === 'pad' ? 'none' : 'contents';
+  $('#presetSel').closest('label').style.display = c.output === 'pad' ? 'none' : '';
+  $('#presetSel').value = c.preset;
+  $('#lstickSel').value = c.lstick; $('#rstickSel').value = c.rstick;
+  $('#lookSens').value = c.sens; $('#lookSensVal').textContent = (+c.sens).toFixed(1) + '×';
+  $('#invertY').checked = c.invert; $('#showScreen').checked = c.showScreen;
+  const opts = ['<option value="">Nothing</option>', ...ACTIONS.map(([g, list]) =>
+    `<optgroup label="${g}">${list.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('')}</optgroup>`)].join('');
+  $('#bindList').innerHTML = CONTROLS.map(([id, xl, pl]) => {
+    const face = 'abxy'.includes(id) && id.length === 1;
+    const name = c.style === 'ps' ? (pl || xl) : xl;
+    return `<label class="bind"><span class="glyph${face ? ' f' + id : ' pill2'}">${face || !['up', 'down', 'left', 'right'].includes(id) ? glyphHtml(id) : '✚'}</span>
+      <span class="name">${esc(name)}</span><select data-bind="${id}" aria-label="${esc(name)} button">${opts}</select></label>`;
+  }).join('');
+  $$('#bindList select').forEach(s => { s.value = c.bind[s.dataset.bind] || ''; });
+  $('#bindList').className = 'card ' + (c.style === 'ps' ? 'ps' : 'xbox');
+}
+function setCfg(changes, toCustom = true) {
+  Object.assign(game.cfg, changes);
+  if (toCustom) game.cfg.preset = 'custom';
+  saveGameCfg(); drawGameSetup();
+}
+$$('[data-style]').forEach(b => b.addEventListener('click', () => { setCfg({ style: b.dataset.style }, false); checkPad(); }));
+$$('[data-output]').forEach(b => b.addEventListener('click', () => { game.padFailed = false; setCfg({ output: b.dataset.output }, false); checkPad(); }));
+$('#presetSel').addEventListener('change', e => {
+  const p = PRESETS[e.target.value];
+  if (p) setCfg({ preset: e.target.value, ...structuredClone(p) }, false); else setCfg({ preset: 'custom' }, false);
+});
+$('#lstickSel').addEventListener('change', e => setCfg({ lstick: e.target.value }));
+$('#rstickSel').addEventListener('change', e => setCfg({ rstick: e.target.value }));
+$('#lookSens').addEventListener('input', e => { game.cfg.sens = +e.target.value; $('#lookSensVal').textContent = game.cfg.sens.toFixed(1) + '×'; saveGameCfg(); });
+$('#invertY').addEventListener('change', e => setCfg({ invert: e.target.checked }, false));
+$('#showScreen').addEventListener('change', e => setCfg({ showScreen: e.target.checked }, false));
+$('#bindList').addEventListener('change', e => {
+  const s = e.target.closest('[data-bind]'); if (!s) return;
+  setCfg({ bind: { ...game.cfg.bind, [s.dataset.bind]: s.value } });
+});
+$('#resetBinds').addEventListener('click', () => {
+  const p = game.cfg.preset === 'custom' ? 'fps' : game.cfg.preset;
+  setCfg({ preset: p, ...structuredClone(PRESETS[p]) }, false); toast('Buttons reset');
+});
+drawGameSetup();
+
+function drawPlay() {
+  const c = game.cfg, play = $('#play');
+  play.className = 'play on ' + (c.style === 'ps' ? 'ps' : 'xbox');
+  $$('#play [data-ctl]').forEach(b => {
+    const id = b.dataset.ctl, ctl = CONTROLS.find(x => x[0] === id);
+    if ('abxy'.includes(id) && id.length === 1) b.innerHTML = glyphHtml(id);
+    else if (['view', 'menu'].includes(id)) b.textContent = c.style === 'ps' ? ctl[2] : ctl[1];
+    else if (b.querySelector('.lab')) b.querySelector('.lab').textContent = c.style === 'ps' ? ctl[2] : ctl[1];
+    let k = b.querySelector('.k'); if (!k) { k = document.createElement('span'); k.className = 'k'; b.appendChild(k); }
+    k.textContent = shortKey(c.bind[id]);
+  });
+  $('#lcap').textContent = { wasd: 'Move · WASD', arrows: 'Move · arrows', off: '' }[c.lstick];
+  $('#rcap').textContent = { mouse: 'Look', arrows: 'Arrows', off: '' }[c.rstick];
+  $('#gameImg').hidden = !c.showScreen;
+}
+
+// Virtual controller mode: one message with everything currently held and the analog stick/trigger positions.
+async function padFlush() {
+  if (game.inflight || !game.open) return;
+  const dz = v => Math.abs(v) < 0.08 ? 0 : +v.toFixed(3);
+  const state = { kind: game.cfg.style === 'ps' ? 'ds4' : 'x360', buttons: [...game.padButtons].sort(),
+    lx: dz(game.lstick[0]), ly: dz(game.lstick[1]), rx: dz(game.rstick[0]), ry: dz(game.rstick[1]) };
+  const key = JSON.stringify(state), idle = !state.buttons.length && !state.lx && !state.ly && !state.rx && !state.ry;
+  const beat = !idle && performance.now() - game.lastBeat > 400;
+  if (key === game.padKey && !beat) return;
+  game.padKey = key; game.lastBeat = performance.now(); game.padActive = !idle || game.padActive;
+  game.inflight = true;
+  try {
+    const r = await api('pad', state, { quiet: true });
+    if (!r.ok && /controller|ViGEm/i.test(r.error || '')) {
+      game.padFailed = true; game.padActive = false;
+      toast('Virtual controller isn\'t available, using keyboard & mouse'); recomputeHeld();
+    }
+  } finally { game.inflight = false; }
+}
+// One message per tick: what to press, release, keep holding, and how far to turn the camera.
+async function gameFlush() {
+  if (outputMode() === 'pad') return padFlush();
+  if (game.inflight || !game.open) return;
+  const want = game.held;
+  const down = [...want].filter(k => !game.sent.has(k)), up = [...game.sent].filter(k => !want.has(k));
+  const lx = Math.trunc(game.lookAcc[0]), ly = Math.trunc(game.lookAcc[1]);
+  const beat = performance.now() - game.lastBeat > 400 && want.size;
+  if (!down.length && !up.length && !lx && !ly && !beat) return;
+  game.lookAcc[0] -= lx; game.lookAcc[1] -= ly;
+  game.sent = new Set(want); game.lastBeat = performance.now();
+  game.inflight = true;
+  try { await api('game', { down, up, held: [...want], look: [lx, ly] }, { quiet: true }); }
+  finally { game.inflight = false; }
+}
+function recomputeHeld() {
+  const c = game.cfg, held = new Set(), pad = new Set();
+  $$('#play [data-ctl].down').forEach(b => { const k = c.bind[b.dataset.ctl]; if (k) held.add(k); pad.add(b.dataset.ctl); });
+  for (const k of game.lstickKeys || []) held.add(k);
+  for (const k of game.rstickKeys || []) held.add(k);
+  game.held = held; game.padButtons = pad;
+  gameFlush(); // send presses right away instead of waiting for the next tick
+}
+const capture = (el, id) => { try { el.setPointerCapture(id); } catch {} };
+// Runs ~60 times a second while playing: turns the right stick into mouse movement.
+function gameTick() {
+  if (!game.open) return;
+  const t = performance.now(), dt = Math.min(0.05, (t - (game.lastT || t)) / 1000); game.lastT = t;
+  if (outputMode() === 'keys' && game.cfg.rstick === 'mouse') {
+    const [x, y] = game.rstick, mag = Math.hypot(x, y);
+    if (mag > 0.08) {
+      const speed = 1400 * game.cfg.sens * Math.pow(mag, 1.6) / mag; // px per second, gentle near centre
+      game.lookAcc[0] += x * speed * dt;
+      game.lookAcc[1] += y * speed * dt * (game.cfg.invert ? -1 : 1);
+    }
+  }
+  gameFlush();
+}
+function stickKeys(x, y, mode) {
+  const m = mode === 'wasd' ? { u: 'w', d: 's', l: 'a', r: 'd' } : mode === 'arrows' ? { u: 'up', d: 'down', l: 'left', r: 'right' } : null;
+  if (!m) return [];
+  const dz = 0.35, k = [];
+  if (y < -dz) k.push(m.u); if (y > dz) k.push(m.d); if (x < -dz) k.push(m.l); if (x > dz) k.push(m.r);
+  return k;
+}
+$$('#play [data-stick]').forEach(stick => {
+  const knob = stick.querySelector('.knob'), which = stick.dataset.stick;
+  let id = null;
+  const move = e => {
+    const r = stick.getBoundingClientRect(), rad = r.width / 2;
+    let x = (e.clientX - r.left - rad) / rad, y = (e.clientY - r.top - rad) / rad;
+    const len = Math.hypot(x, y); if (len > 1) { x /= len; y /= len; }
+    knob.style.transform = `translate(${x * rad * 0.62}px, ${y * rad * 0.62}px)`;
+    if (which === 'l') { game.lstick = [x, y]; game.lstickKeys = stickKeys(x, y, game.cfg.lstick); }
+    else { game.rstick = [x, y]; game.rstickKeys = game.cfg.rstick === 'arrows' ? stickKeys(x, y, 'arrows') : []; }
+    recomputeHeld();
+  };
+  const end = e => {
+    if (e.pointerId !== id) return; id = null; knob.style.transform = '';
+    if (which === 'l') { game.lstick = [0, 0]; game.lstickKeys = []; } else { game.rstick = [0, 0]; game.rstickKeys = []; }
+    recomputeHeld();
+  };
+  stick.addEventListener('pointerdown', e => { if (id !== null) return; id = e.pointerId; capture(stick, id); move(e); });
+  stick.addEventListener('pointermove', e => { if (e.pointerId === id) move(e); });
+  ['pointerup', 'pointercancel'].forEach(ev => stick.addEventListener(ev, end));
+});
+$$('#play [data-ctl]').forEach(b => {
+  b.addEventListener('pointerdown', e => { e.preventDefault(); capture(b, e.pointerId); b.classList.add('down'); recomputeHeld(); buzz(6); });
+  const up = () => { if (!b.classList.contains('down')) return; b.classList.remove('down'); recomputeHeld(); };
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, up));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+function gameReleaseAll() {
+  $$('#play .down').forEach(b => b.classList.remove('down'));
+  $$('#play .knob').forEach(k => { k.style.transform = ''; });
+  game.lstickKeys = []; game.rstickKeys = []; game.lstick = [0, 0]; game.rstick = [0, 0];
+  game.held = new Set(); game.padButtons = new Set(); game.lookAcc = [0, 0]; game.padKey = '';
+  if (game.sent.size || game.padActive) { game.sent = new Set(); game.padActive = false; api('release_all', {}, { quiet: true }); }
+}
+function openGame() {
+  game.open = true; game.autoProfile = ''; drawPlay(); document.body.classList.add('locked');
+  pageFullscreen(true);
+  try { screen.orientation?.lock?.('landscape')?.catch(() => {}); } catch {}
+  game.lastT = 0; clearInterval(game.timer); game.timer = setInterval(gameTick, 16);
+  clearInterval(game.activeTimer); game.activeTimer = setInterval(autoSwitchProfile, 3000); autoSwitchProfile();
+  if (game.cfg.output === 'pad') checkPad();
+  startStream();
+}
+function closeGame() {
+  if (!game.open) return;
+  gameReleaseAll(); game.open = false; clearInterval(game.timer); clearInterval(game.activeTimer);
+  $('#play').classList.remove('on'); document.body.classList.remove('locked');
+  pageFullscreen(false);
+  startStream();
+}
+$('#playBtn').addEventListener('click', openGame);
+$('#playExit').addEventListener('click', closeGame);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && game.open) closeGame(); });
+
+/* ================= game profiles (kept on the PC, so every phone has them) ================= */
+const currentProfile = () => game.profiles.find(p => p.id === game.profileId);
+function drawProfiles() {
+  const sel = $('#profileSel');
+  sel.innerHTML = '<option value="">Current layout (not saved)</option>' + game.profiles.map(p =>
+    `<option value="${esc(p.id)}">${esc(p.name)}${p.match ? ' · auto' : ''}</option>`).join('');
+  sel.value = currentProfile() ? game.profileId : '';
+  const has = !!currentProfile();
+  $('#profUpdate').disabled = $('#profDelete').disabled = !has;
+  $('#profHint').textContent = has && currentProfile().match
+    ? `Switches on by itself when "${currentProfile().match}" is in front on your PC.`
+    : 'Give a profile a game name (like "Brawlhalla") and it switches on by itself when that game is in front on your PC.';
+}
+async function loadProfiles() {
+  const r = await api('profiles', {}, { quiet: true });
+  if (r.ok) { game.profiles = r.items; drawProfiles(); }
+}
+function applyProfile(p) {
+  game.cfg = mergeCfg(p.cfg); saveGameCfg(); game.padFailed = false;
+  drawGameSetup(); checkPad();
+  if (game.open) { gameReleaseAll(); drawPlay(); }
+}
+const pickCfg = () => Object.fromEntries(CFG_KEYS.map(k => [k, game.cfg[k]]));
+$('#profileSel').addEventListener('change', e => {
+  game.profileId = e.target.value; store.set('kovrel.profile', game.profileId);
+  const p = currentProfile(); if (p) { applyProfile(p); toast(`Loaded "${p.name}"`); }
+  drawProfiles();
+});
+$('#profSave').addEventListener('click', () => { $('#profileForm').reset(); $('#profileDialog').showModal(); $('#profName').focus(); });
+$('#profSaveOk').addEventListener('click', async e => {
+  e.preventDefault(); if (!$('#profileForm').reportValidity()) return;
+  const r = await api('profile_save', { name: $('#profName').value, match: $('#profMatch').value, cfg: pickCfg() });
+  if (!r.ok) return;
+  game.profiles = r.items; game.profileId = r.id; store.set('kovrel.profile', r.id);
+  $('#profileDialog').close(); drawProfiles(); toast('Layout saved on the PC'); buzz();
+});
+$('#profUpdate').addEventListener('click', async () => {
+  const p = currentProfile(); if (!p) return;
+  const r = await api('profile_save', { id: p.id, name: p.name, match: p.match, cfg: pickCfg() });
+  if (r.ok) { game.profiles = r.items; drawProfiles(); toast(`Updated "${p.name}"`); buzz(); }
+});
+$('#profDelete').addEventListener('click', async () => {
+  const p = currentProfile(); if (!p || !(await confirmAction(`Delete the "${p.name}" layout?`))) return;
+  const r = await api('profile_delete', { id: p.id });
+  if (r.ok) { game.profiles = r.items; game.profileId = ''; store.set('kovrel.profile', ''); drawProfiles(); toast('Deleted'); }
+});
+let importMode = 'import';
+function openImport(mode, text = '') {
+  importMode = mode;
+  $('#importTitle').textContent = mode === 'import' ? 'Import a layout' : 'Share this layout';
+  $('#importHelp').textContent = mode === 'import' ? 'Paste a layout someone shared with you.' : 'Copy this text and send it to a friend. They paste it into Import.';
+  $('#importOk').textContent = mode === 'import' ? 'Import' : 'Copy';
+  $('#importText').value = text; $('#importText').readOnly = mode !== 'import'; $('#importErr').textContent = '';
+  $('#importDialog').showModal(); $('#importText').focus(); if (mode !== 'import') $('#importText').select();
+}
+$('#profShare').addEventListener('click', () => {
+  const p = currentProfile();
+  openImport('share', JSON.stringify({ kovrel: 1, name: p?.name || 'My layout', match: p?.match || '', cfg: pickCfg() }));
+});
+$('#profImport').addEventListener('click', () => openImport('import'));
+$('#importOk').addEventListener('click', async e => {
+  e.preventDefault();
+  if (importMode === 'share') {
+    try { await navigator.clipboard.writeText($('#importText').value); toast('Copied'); $('#importDialog').close(); }
+    catch { $('#importText').select(); $('#importErr').textContent = 'Press and hold the text, then choose Copy.'; }
+    return;
+  }
+  let data;
+  try { data = JSON.parse($('#importText').value.trim()); if (!data || (data.kovrel ?? data.vexari) !== 1 || typeof data.cfg !== 'object') throw 0; }   // vexari: layouts shared before the rename
+  catch { $('#importErr').textContent = 'That doesn\'t look like a Kovrel layout.'; return; }
+  const r = await api('profile_save', { name: String(data.name || 'Imported layout'), match: String(data.match || ''), cfg: data.cfg }, { quiet: true });
+  if (!r.ok) { $('#importErr').textContent = r.error || 'Couldn\'t import that layout.'; return; }
+  game.profiles = r.items; game.profileId = r.id; store.set('kovrel.profile', r.id);
+  applyProfile(currentProfile()); drawProfiles(); $('#importDialog').close(); toast('Layout imported');
+});
+// While you play, watch which program is in front on the PC and switch to its profile.
+async function autoSwitchProfile() {
+  if (!game.open) return;
+  if (!game.profiles.length) await loadProfiles();
+  const w = await api('active_window', {}, { quiet: true });
+  if (!w.ok || !game.open) return;
+  const hay = `${w.title} ${w.exe}`.toLowerCase();
+  const p = game.profiles.find(x => x.match && hay.includes(x.match.toLowerCase()));
+  if (p && p.id !== game.autoProfile) {
+    game.autoProfile = p.id; game.profileId = p.id; store.set('kovrel.profile', p.id);
+    applyProfile(p); drawProfiles(); toast(`Switched to "${p.name}"`); buzz(15);
+  }
+}
+
+/* ================= boot ================= */
+$('#devName').value = devName;
+if (token) showApp(); else showLogin();
+</script>
+</body>
+</html>

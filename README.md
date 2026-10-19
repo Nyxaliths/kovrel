@@ -125,6 +125,12 @@ use. We plan to reapply once it has more users. Until then:
 - The release workflow can already sign with SignPath once it is set up (see
   [docs/PUBLISHING.md](docs/PUBLISHING.md)).
 
+## Support
+
+Kovrel is free and open source, and it stays that way. If it saves you a walk to your PC, you can
+[buy me a coffee](https://buymeacoffee.com/nyxaliths). Donations go first toward a code-signing certificate, so
+the installer stops triggering Windows warnings.
+
 ## License
 
 [MIT](LICENSE). Kovrel bundles `ViGEmClient.dll` (MIT); see [vendor/NOTICE.txt](vendor/NOTICE.txt).

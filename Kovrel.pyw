@@ -219,8 +219,10 @@ class App:
         self.url_entry.pack(fill="x", pady=(2, 0))
         self.secure_lbl = tk.Label(c, bg=CARD, font=(FONT, 8), wraplength=360, justify="center")
         self.secure_lbl.pack(pady=(4, 0))
-        # Shown only on "Away" while Tailscale isn't installed on this PC (see draw_qr).
+        # "Away" needs Tailscale on the PC and on the phone; draw_qr shows whichever install button applies.
         self.ts_btn = self.button(c, "Install Tailscale", lambda: webbrowser.open(TAILSCALE_URL), primary=True)
+        self.ts_phone_btn = self.button(c, "Install Tailscale on your phone", self.show_tailscale_phone)
+        self.ts_win = None
 
         c = self.card(pad, pady=(10, 0))
         row = tk.Frame(c, bg=CARD)
@@ -288,11 +290,13 @@ class App:
             on = mode == self.qr_mode
             b.configure(bg=CARD if on else CARD2, fg=FG if on else MUTED)
         checking = self.ts.get("checking")
-        installer = away and not url and not self.ts["installed"] and not checking
-        if installer and not self.ts_btn.winfo_ismapped():
-            self.ts_btn.pack(pady=(10, 0))
-        elif not installer and self.ts_btn.winfo_ismapped():
-            self.ts_btn.pack_forget()
+        installer = away and not url and not self.ts["installed"] and not checking     # missing on this PC
+        for btn, on in ((self.ts_btn, installer),
+                        (self.ts_phone_btn, bool(away) and not installer and not checking)):   # the phone needs it too
+            if on and not btn.winfo_ismapped():
+                btn.pack(pady=(10, 0))
+            elif not on and btn.winfo_ismapped():
+                btn.pack_forget()
         if away and not url and checking:
             self.secure_lbl.configure(text="Checking Tailscale…", fg=MUTED)
         elif installer:
@@ -308,6 +312,30 @@ class App:
         self._drawn_url = url
         self._drawn_state = self.qr_state()
         self.fit_height()
+
+    def show_tailscale_phone(self):
+        """A small window with a QR code to scan: it opens Tailscale's download page on the phone."""
+        if self.ts_win and self.ts_win.winfo_exists():
+            self.ts_win.lift()
+            self.ts_win.focus_force()
+            return
+        win = self.ts_win = tk.Toplevel(self.root)
+        win.title("Install Tailscale on your phone")
+        win.configure(bg=BG, padx=26, pady=22)
+        win.resizable(False, False)
+        tk.Label(win, text="Tailscale on your phone", bg=BG, fg=FG, font=(FONT, 16, "bold")).pack(anchor="w")
+        tk.Label(win, text="Away from home your phone reaches this PC through Tailscale, a free private network\n"
+                           "between your own devices. Scan this code with your phone's camera, install the app,\n"
+                           "then sign in with the same account you use on this PC.",
+                 bg=BG, fg=MUTED, font=(FONT, 9), justify="left").pack(anchor="w", pady=(6, 12))
+        win.qr_img = self.qr_image(TAILSCALE_URL, 190)
+        tk.Label(win, image=win.qr_img, bg=BG).pack()
+        tk.Label(win, text=TAILSCALE_URL.split("://", 1)[1], bg=BG, fg=FG, font=(FONT, 10, "bold")).pack(pady=(8, 0))
+        row = tk.Frame(win, bg=BG)
+        row.pack(fill="x", pady=(16, 0))
+        self.button(row, "Close", win.destroy).pack(side="right")
+        self.button(row, "Open on this PC", lambda: webbrowser.open(TAILSCALE_URL)).pack(side="right", padx=8)
+        self.place_center(win, 0, 0)
 
     def qr_state(self):
         """What the QR card depends on besides the address: redraw when it changes (e.g. Tailscale gets installed)."""

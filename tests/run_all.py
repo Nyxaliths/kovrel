@@ -10,7 +10,7 @@ They do use this PC's screen, sound and process list (read-only), and the window
 import os, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FAST = ["sec_test.py", "migrate_test.py", "remote_test.py", "update_test.py", "page_check.py", "vigem_test.py", "server_test.py"]
+FAST = ["sec_test.py", "migrate_test.py", "remote_test.py", "update_test.py", "page_check.py", "vigem_test.py", "h264_test.py", "server_test.py"]
 SLOW = ["gui_test.py", "video_test.py", "exe_test.py"]
 
 

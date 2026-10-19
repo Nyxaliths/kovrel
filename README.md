@@ -91,8 +91,11 @@ for what is stored where.
   (`SendInput`). Games with kernel-level anti-cheat (for example Valorant) may block or flag that input.
   Don't use it where the game's rules forbid input tools.
 - **The PC must be on and awake.** When the PC sleeps, Kovrel sleeps with it.
-- **The screen is sent as JPEG pictures, not video.** It is very compatible, but uses more data than a
-  video stream (roughly 1–6 MB/s). Away from home, Kovrel starts with a smaller picture.
+- **Smooth H.264 video needs a secure page.** Phone browsers only allow it over HTTPS (Settings › Access,
+  or Tailscale's certificate), and only if your Windows has its built-in H.264 encoder (some "N" and Server
+  editions don't). Otherwise the screen is sent as JPEG pictures: very compatible, but several times more
+  data (roughly 1–6 MB/s). Kovrel picks by itself; **Screen settings › Video** can force JPEG. Away from home,
+  Kovrel starts with a smaller picture.
 - **The home-network HTTPS certificate is made by your PC**, so phones show a one-time warning. With
   Tailscale's certificate (Settings › Remote) there is no warning.
 - **The virtual controller** needs the free [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)

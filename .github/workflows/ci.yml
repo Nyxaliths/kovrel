@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: "22"
       - run: python -m pip install -r requirements.txt pyflakes
-      - run: python -m pyflakes security.py server.py Kovrel.pyw vigem.py installer/setup.pyw installer/build.py tools tests
+      - run: python -m pyflakes security.py server.py Kovrel.pyw vigem.py h264.py installer/setup.pyw installer/build.py tools tests
       # The checks that don't need a real screen, sound card or desktop session.
       - run: python tests/sec_test.py
       - run: python tests/migrate_test.py
@@ -27,3 +27,4 @@ jobs:
       - run: python tests/update_test.py
       - run: python tests/page_check.py
       - run: python tests/vigem_test.py
+      - run: python tests/h264_test.py      # skips itself where Windows has no H.264 encoder

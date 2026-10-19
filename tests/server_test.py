@@ -156,6 +156,24 @@ print(f"     video: {frames/3:.1f} fps average over 3 s, {sum(sizes)/len(sizes)/
 check("video delivers at least the 1/second heartbeat even on a still screen", frames >= 2)
 vc.close()
 
+# H.264 when asked and possible; otherwise the same request quietly gets JPEG
+vc = conn(); vc.request("POST", "/api/video", json.dumps({"width": 960, "monitor": 0, "quality": 65, "fps": 30, "codec": "h264"}), {"X-Token": T, "Content-Type": "application/json"})
+vr = vc.getresponse()
+if vr.headers["X-Format"] == "h264-frames":
+    check("H.264 stream starts and names its codec", vr.status == 200 and vr.headers["X-Codec"].startswith("avc1."))
+    n = struct.unpack(">I", vr.read(4))[0]; blob = vr.read(n)
+    check("first H.264 frame is a keyframe in Annex B with SPS", blob[0] == 1 and blob[1:5] == b"\x00\x00\x00\x01" and 7 in [k for k, _, _ in server.h264.split_nals(blob[1:])])
+    frames, t0 = 0, time.time()
+    while time.time() - t0 < 2:
+        n = struct.unpack(">I", vr.read(4))[0]; blob = vr.read(n); frames += 1
+        if blob[0] not in (0, 1): check("H.264 frame flag is 0 or 1", False); break
+    check("H.264 stream keeps delivering frames", frames >= 2)
+else:
+    check("no H.264 here: the request falls back to JPEG", vr.status == 200 and vr.headers["X-Format"] == "jpeg-frames")
+vc.close()
+vc = conn(); vc.request("POST", "/api/video", json.dumps({"width": 960, "monitor": 0, "quality": 65, "fps": 30}), {"X-Token": T, "Content-Type": "application/json"})
+vr = vc.getresponse(); check("without asking for H.264 the stream stays JPEG", vr.headers["X-Format"] == "jpeg-frames"); vc.close()
+
 # ---- pause switch
 auto_id, key = security.create_automation_key("Shortcuts")
 s, d, _ = call(conn(), "ping", token=key);                 check("automation key: ping ok", s == 200)

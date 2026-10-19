@@ -132,7 +132,7 @@ textarea { min-height: 96px; resize: vertical; }
   overflow: auto; flex: 1 1 55%; min-height: 120px; touch-action: pan-x pan-y; overscroll-behavior: contain; }
 /* The picture always fits the box (wide or portrait monitors alike); zoom makes it bigger inside the box,
    so the controls below never move. */
-.viewer img { display: block; width: calc(var(--zoom, 1) * 100%); height: calc(var(--zoom, 1) * 100%); object-fit: contain; user-select: none;
+.viewer img, .viewer canvas { display: block; width: calc(var(--zoom, 1) * 100%); height: calc(var(--zoom, 1) * 100%); object-fit: contain; user-select: none;
   -webkit-user-drag: none; -webkit-touch-callout: none; cursor: pointer; }
 .viewer-msg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; color: #B9C0C9; font-size: 15px; pointer-events: none; }
 .badge { position: sticky; float: right; top: 8px; margin: 8px 8px -30px 0; z-index: 2; pointer-events: none;
@@ -258,7 +258,8 @@ textarea { min-height: 96px; resize: vertical; }
 /* ---------- game overlay (controller over the PC screen) ---------- */
 .play { position: fixed; inset: 0; z-index: 60; background: #000; display: none; touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden; }
 .play.on { display: block; }
-.play img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.play img, .play canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.viewer img[hidden], .viewer canvas[hidden], .play img[hidden], .play canvas[hidden] { display: none; }
 .play .msg { position: absolute; inset: 0; display: grid; place-items: center; color: #8F96A1; font-size: 15px; pointer-events: none; }
 .ptop { position: absolute; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; z-index: 3; }
 .ptop .tb { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; border: 0;
@@ -373,7 +374,6 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
   <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-4A13 13 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/></symbol>
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
   <symbol id="i-scroll" viewBox="0 0 24 24"><path d="m8 9 4-4 4 4M8 15l4 4 4-4"/></symbol>
-  <symbol id="i-grab" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></symbol>
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2L7 14.2 2 9.3l6.9-1z"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
@@ -441,6 +441,7 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
         <div class="viewer" id="viewer">
           <span class="badge" id="fps">–</span>
           <img id="screenImg" alt="Live view of your PC screen. Tap to click, long-press to right-click.">
+          <canvas id="screenCv" hidden role="img" aria-label="Live view of your PC screen. Tap to click, long-press to right-click."></canvas>
           <div class="viewer-msg" id="screenMsg">Connecting to screen…</div>
         </div>
         <div class="minirow">
@@ -679,10 +680,10 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
         <button class="btn big" data-click="middle">Middle</button>
         <button class="btn big" data-click="right">Right</button>
       </div>
-      <div class="grid g2">
-        <button class="btn" id="dragBtn" aria-pressed="false"><svg class="icon"><use href="#i-grab"/></svg>Hold click</button>
+      <div class="grid">
         <button class="btn" data-click="left" data-action="double">Double click</button>
       </div>
+      <p class="muted">Double-tap Left, Middle or Right to hold it and drag with the pad. Tap it again to let go.</p>
       <label class="card row"><span>Speed</span><input id="sens" type="range" min="0.5" max="4" step="0.1" value="1.8"><kbd id="sensVal">1.8×</kbd></label>
     </section>
 
@@ -774,6 +775,7 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
 <!-- ================= Game overlay ================= -->
 <div class="play xbox" id="play" aria-label="Game controller">
   <img id="gameImg" alt="">
+  <canvas id="gameCv" hidden></canvas>
   <div class="msg" id="gameMsg" hidden></div>
   <div class="rotate">Turn your phone sideways to play</div>
   <div class="ptop">
@@ -823,6 +825,8 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
     <label class="field"><span>Monitor</span><select id="monitorSel"><option value="0">Main screen</option></select></label>
     <label class="field"><span>Picture</span>
       <select id="qualitySel"><option value="960">Fast (smoothest)</option><option value="1280">Balanced</option><option value="1920">Sharp</option></select></label>
+    <label class="field" id="codecField" hidden><span>Video</span>
+      <select id="codecSel"><option value="h264">Smooth (H.264, less data)</option><option value="jpeg">Compatible (pictures)</option></select></label>
     <button class="btn" type="button" id="shotBtn"><svg class="icon"><use href="#i-download"/></svg>Save a full-quality screenshot</button>
     <p>Tap the screen to click there · long-press to right-click · double-tap Left to hold it and drag with the mouse pad · use zoom, then swipe to look around.</p>
     <button class="btn primary" value="ok">Done</button>
@@ -1160,7 +1164,6 @@ function drawHeld() {
     b.setAttribute('aria-pressed', on);
     b.textContent = BTN_NAME[b.dataset.click] + (on ? ' · held' : '');
   });
-  $('#dragBtn').setAttribute('aria-pressed', heldBtn.left);
 }
 function setHeld(btn, on) {
   if (heldBtn[btn] === on) return;
@@ -1181,7 +1184,6 @@ $$('[data-click]').forEach(b => b.addEventListener('click', () => {
   lastTap[btn] = now; buzz();
   tapTimer[btn] = setTimeout(() => api('click', { button: btn, mods: useMods() }), 260);
 }));
-$('#dragBtn').addEventListener('click', () => { setHeld('left', !heldBtn.left); buzz(); });
 
 /* ================= keys ================= */
 // Sticky modifiers: 0 = off, 1 = for the next key or tap only, 2 = held until tapped again.
@@ -1597,16 +1599,82 @@ $$('[data-sound]').forEach(b => b.addEventListener('click', () => {
 
 /* ================= screen stream (Screen tab and Game) ================= */
 const viewer = $('#viewer'), screenImg = $('#screenImg'), gameImg = $('#gameImg');
+const screenCv = $('#screenCv'), gameCv = $('#gameCv');
 // Lay the Screen tab out for the monitor's shape: portrait monitors get a taller picture box.
 screenImg.addEventListener('load', () => $('#stage').classList.toggle('tall', screenImg.naturalHeight > screenImg.naturalWidth));
-const scr = { paused: false, running: false, zoom: 1, frames: 0, url: null, key: '',
+const scr = { paused: false, running: false, zoom: 1, frames: 0, url: null, key: '', mode: 'jpeg',
   width: +store.get('kovrel.width', '1280'), monitor: +store.get('kovrel.monitor', '0'), gen: 0, lastFrame: 0, ctrl: null };
 $('#qualitySel').value = scr.width;
 const gameStreaming = () => game.open && game.cfg.showScreen;
 const streamTarget = () => gameStreaming() ? gameImg : screenImg;
 const streamWanted = () => appOn() && visible() && (gameStreaming() || (page === 'screen' && !scr.paused && !game.open));
-const streamKey = () => `${scr.width}|${scr.monitor}|${gameStreaming() ? 'game' : 'screen'}`;
+const streamKey = () => `${scr.width}|${scr.monitor}|${gameStreaming() ? 'game' : 'screen'}|${h264.want()}`;
 function stopStream() { scr.ctrl?.abort(); scr.gen++; scr.running = false; }
+
+// Which element shows the picture: an <img> for JPEG frames, a <canvas> for H.264 (decoded by the phone).
+function setSurfaces() {
+  const cv = scr.mode === 'h264', showGame = !!(game.cfg && game.cfg.showScreen);
+  screenImg.hidden = cv; screenCv.hidden = !cv;
+  gameImg.hidden = cv || !showGame; gameCv.hidden = !cv || !showGame;
+}
+
+// H.264 needs the browser's WebCodecs, which only exists on secure pages (https or localhost); where it
+// isn't there, or the PC can't encode, the stream quietly stays JPEG. The Screen settings can force JPEG.
+const h264 = { ok: false, pref: store.get('kovrel.video', 'h264') !== 'jpeg' };
+h264.want = () => h264.ok && h264.pref ? 'h264' : 'jpeg';
+(async () => {
+  try {
+    if (!window.isSecureContext || !window.VideoDecoder || !window.EncodedVideoChunk) return;
+    h264.ok = !!(await VideoDecoder.isConfigSupported({ codec: 'avc1.4d401e', optimizeForLatency: true })).supported;
+    $('#codecField').hidden = !h264.ok; $('#codecSel').value = h264.pref ? 'h264' : 'jpeg';
+    startStream();
+  } catch {}
+})();
+
+// Reads H.264 frames ([4-byte length][1 byte: keyframe?][Annex B]) and plays them on a canvas. Every frame goes
+// to the decoder (they build on each other) and each decoded picture is drawn as soon as it is ready.
+async function readH264(reader, gen, img, msgEl, codec) {
+  const cv = img === gameImg ? gameCv : screenCv, ctx = cv.getContext('2d', { alpha: false });
+  let ts = 0, needKey = true;
+  function draw(f) {
+    if (cv.width !== f.displayWidth || cv.height !== f.displayHeight) {
+      cv.width = f.displayWidth; cv.height = f.displayHeight;
+      if (cv === screenCv) $('#stage').classList.toggle('tall', cv.height > cv.width);
+    }
+    ctx.drawImage(f, 0, 0); f.close();
+    scr.frames++; msgEl.hidden = true;
+    if (!online) setOnline(true);
+  }
+  const dec = new VideoDecoder({
+    output: draw,
+    error: () => { h264.ok = false; scr.ctrl?.abort(); },      // can't decode here: reconnect with JPEG
+  });
+  dec.configure({ codec, optimizeForLatency: true });
+  scr.mode = 'h264'; setSurfaces();
+  let buf = new Uint8Array(0);
+  try {
+    while (gen === scr.gen) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const joined = new Uint8Array(buf.length + value.length); joined.set(buf); joined.set(value, buf.length); buf = joined;
+      let off = 0;
+      while (buf.length - off >= 4) {
+        const len = new DataView(buf.buffer, buf.byteOffset + off, 4).getUint32(0);
+        if (len > 30e6 || len < 2) throw new Error('The screen stream got garbled');
+        if (buf.length - off - 4 < len) break;
+        const key = buf[off + 4] === 1, data = buf.subarray(off + 5, off + 4 + len); off += 4 + len;
+        if (needKey && !key) continue;
+        needKey = false;
+        dec.decode(new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: ts, data }));
+        ts += 33333;
+      }
+      if (off) buf = buf.slice(off);
+      scr.lastFrame = Date.now();
+    }
+  } finally {
+    if (dec.state !== 'closed') dec.close();
+  }
+}
 
 // The PC pushes frames down ONE long-lived connection ([4-byte length][JPEG] each), so there is no
 // request per frame. If we fall behind we only ever draw the newest frame. Each run has a generation
@@ -1622,10 +1690,16 @@ async function startStream() {
     try {
       scr.ctrl = new AbortController();
       const r = await fetch('/api/video', { method: 'POST', headers: hdrs(), signal: scr.ctrl.signal,
-        body: JSON.stringify({ width: scr.width, monitor: scr.monitor, quality: 65, fps: 30 }) });
+        body: JSON.stringify({ width: scr.width, monitor: scr.monitor, quality: 65, fps: 30, codec: h264.want() }) });
       if (r.status === 401) { signOutLocally('You were signed out. Sign in again.'); break; }
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Couldn\'t start the screen');
       const reader = r.body.getReader();
+      if (r.headers.get('X-Format') === 'h264-frames' && h264.ok) {
+        await readH264(reader, gen, img, msgEl, r.headers.get('X-Codec') || 'avc1.4d401e');
+        if (gen === scr.gen) await sleep(1000);
+        continue;
+      }
+      if (scr.mode !== 'jpeg') { scr.mode = 'jpeg'; setSurfaces(); }
       let buf = new Uint8Array(0);
       while (gen === scr.gen) {
         const { value, done } = await reader.read();
@@ -1676,6 +1750,7 @@ async function loadMonitors() {
 }
 $('#monitorSel').addEventListener('change', e => { scr.monitor = +e.target.value; store.set('kovrel.monitor', scr.monitor); startStream(); });
 $('#qualitySel').addEventListener('change', e => { scr.width = +e.target.value; store.set('kovrel.width', scr.width); startStream(); });
+$('#codecSel').addEventListener('change', e => { h264.pref = e.target.value === 'h264'; store.set('kovrel.video', e.target.value); startStream(); });
 $('#screenSettings').addEventListener('click', () => $('#screenDialog').showModal());
 $('#shotBtn').addEventListener('click', async () => {
   toast('Taking a screenshot…');
@@ -1736,8 +1811,8 @@ $$('[data-kb]').forEach(b => b.addEventListener('click', () => { pressKey(b.data
 $$('#kbPanel .btn').forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
 // Where on the PC screen (0..1) a pointer is, accounting for object-fit letterboxing.
 function screenPoint(e) {
-  const r = screenImg.getBoundingClientRect();
-  const nw = screenImg.naturalWidth || 16, nh = screenImg.naturalHeight || 9;
+  const el = screenCv.hidden ? screenImg : screenCv, r = el.getBoundingClientRect();
+  const nw = (el === screenCv ? screenCv.width : screenImg.naturalWidth) || 16, nh = (el === screenCv ? screenCv.height : screenImg.naturalHeight) || 9;
   const s = Math.min(r.width / nw, r.height / nh);
   const w = nw * s, h = nh * s, ox = (r.width - w) / 2, oy = (r.height - h) / 2;
   const x = (e.clientX - r.left - ox) / w, y = (e.clientY - r.top - oy) / h;
@@ -1750,37 +1825,39 @@ function tapDot(e, right) {
   viewer.appendChild(d); setTimeout(() => d.remove(), 500);
 }
 let touch = null;
-screenImg.addEventListener('pointerdown', e => {
-  const p = screenPoint(e); if (!p) return;
-  const dragging = viewer.classList.contains('drag');
-  touch = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, long: false, dragging, last: 0 };
-  if (dragging) { screenImg.setPointerCapture(e.pointerId); api('tap', { ...p, monitor: scr.monitor, action: 'down' }); return; }
-  if (e.button === 2) return;
-  touch.timer = setTimeout(() => { touch.long = true; tapDot(e, true); buzz(); api('tap', { ...p, monitor: scr.monitor, button: 'right', mods: useMods() }); }, 550);
-});
-screenImg.addEventListener('pointermove', e => {
-  if (!touch || touch.id !== e.pointerId) return;
-  if (Math.hypot(e.clientX - touch.x, e.clientY - touch.y) > 10) { touch.moved = true; clearTimeout(touch.timer); }
-  if (touch.dragging && performance.now() - touch.last > 30) {
+for (const surface of [screenImg, screenCv]) {     // the picture is an <img> (JPEG) or a <canvas> (H.264): same touches
+  surface.addEventListener('pointerdown', e => {
     const p = screenPoint(e); if (!p) return;
-    touch.last = performance.now(); api('tap', { ...p, monitor: scr.monitor, action: 'move' }, { quiet: true });
-  }
-});
-screenImg.addEventListener('pointerup', e => {
-  if (!touch || touch.id !== e.pointerId) return;
-  clearTimeout(touch.timer);
-  const p = screenPoint(e);
-  if (touch.dragging) { if (p) api('tap', { ...p, monitor: scr.monitor, action: 'up' }); else api('click', { button: 'left', action: 'up' }); }
-  else if (!touch.moved && !touch.long && p) { tapDot(e, false); buzz(); api('tap', { ...p, monitor: scr.monitor, mods: useMods() }); }
-  touch = null;
-});
-screenImg.addEventListener('pointercancel', () => { if (touch?.dragging) api('click', { button: 'left', action: 'up' }); clearTimeout(touch?.timer); touch = null; });
-screenImg.addEventListener('contextmenu', e => {
-  e.preventDefault();
-  if (e.pointerType === 'touch' || touch?.long) return;
-  const p = screenPoint(e); if (!p) return;
-  tapDot(e, true); api('tap', { ...p, monitor: scr.monitor, button: 'right', mods: useMods() });
-});
+    const dragging = viewer.classList.contains('drag');
+    touch = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, long: false, dragging, last: 0 };
+    if (dragging) { surface.setPointerCapture(e.pointerId); api('tap', { ...p, monitor: scr.monitor, action: 'down' }); return; }
+    if (e.button === 2) return;
+    touch.timer = setTimeout(() => { touch.long = true; tapDot(e, true); buzz(); api('tap', { ...p, monitor: scr.monitor, button: 'right', mods: useMods() }); }, 550);
+  });
+  surface.addEventListener('pointermove', e => {
+    if (!touch || touch.id !== e.pointerId) return;
+    if (Math.hypot(e.clientX - touch.x, e.clientY - touch.y) > 10) { touch.moved = true; clearTimeout(touch.timer); }
+    if (touch.dragging && performance.now() - touch.last > 30) {
+      const p = screenPoint(e); if (!p) return;
+      touch.last = performance.now(); api('tap', { ...p, monitor: scr.monitor, action: 'move' }, { quiet: true });
+    }
+  });
+  surface.addEventListener('pointerup', e => {
+    if (!touch || touch.id !== e.pointerId) return;
+    clearTimeout(touch.timer);
+    const p = screenPoint(e);
+    if (touch.dragging) { if (p) api('tap', { ...p, monitor: scr.monitor, action: 'up' }); else api('click', { button: 'left', action: 'up' }); }
+    else if (!touch.moved && !touch.long && p) { tapDot(e, false); buzz(); api('tap', { ...p, monitor: scr.monitor, mods: useMods() }); }
+    touch = null;
+  });
+  surface.addEventListener('pointercancel', () => { if (touch?.dragging) api('click', { button: 'left', action: 'up' }); clearTimeout(touch?.timer); touch = null; });
+  surface.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (e.pointerType === 'touch' || touch?.long) return;
+    const p = screenPoint(e); if (!p) return;
+    tapDot(e, true); api('tap', { ...p, monitor: scr.monitor, button: 'right', mods: useMods() });
+  });
+}
 
 /* ================= game controller ================= */
 // Controls a player can bind. Labels differ per controller style.
@@ -1908,7 +1985,7 @@ function drawPlay() {
   });
   $('#lcap').textContent = { wasd: 'Move · WASD', arrows: 'Move · arrows', off: '' }[c.lstick];
   $('#rcap').textContent = { mouse: 'Look', arrows: 'Arrows', off: '' }[c.rstick];
-  $('#gameImg').hidden = !c.showScreen;
+  setSurfaces();
 }
 
 // Virtual controller mode: one message with everything currently held and the analog stick/trigger positions.

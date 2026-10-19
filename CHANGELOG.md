@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Smoother screen with less data: H.264 video.** When the phone's page is secure (HTTPS or Tailscale's
+  certificate) and Windows has its built-in H.264 encoder, the screen is sent as H.264 instead of JPEG
+  pictures, using far less data for the same sharpness. Nothing is bundled: it uses Windows' own encoder.
+  Otherwise Kovrel stays on JPEG, with no setting to touch. **Screen settings › Video** can force JPEG.
+- The mouse pad page no longer has a separate "Hold click" button. Double-tap Left, Middle or Right to hold
+  it (as on the Screen tab) and tap again to let go.
+
 ## 2.0.1
 
 - The PC app tells you when a new version is out (asks GitHub once a day; opens the download page,

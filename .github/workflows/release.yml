@@ -50,6 +50,7 @@ jobs:
       - run: python tests/update_test.py
       - run: python tests/page_check.py
       - run: python tests/vigem_test.py
+      - run: python tests/h264_test.py      # skips itself where Windows has no H.264 encoder
 
       # 1. Kovrel.exe (signed before it goes into the installer)
       - run: python installer/build.py app

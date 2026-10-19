@@ -650,12 +650,95 @@ def screenshot_png(monitor=0):
     return _png(w, h, bgra)
 
 
-def video_stream(write, width=1280, monitor=0, quality=65, max_fps=30):
-    """Pushes the screen as a never-ending run of JPEG frames, each as [4-byte length][bytes].
+H264_BITRATE = {320: 600_000, 480: 1_000_000, 640: 1_800_000, 960: 3_000_000, 1280: 4_500_000, 1600: 6_000_000, 1920: 8_000_000}
+_h264_failed = False    # set when Windows' encoder broke mid-stream: later streams stay on JPEG
+
+
+def h264_bitrate(width):
+    """Bits per second for a picture this wide (the nearest size we have a figure for)."""
+    return H264_BITRATE[min(H264_BITRATE, key=lambda k: abs(k - width))]
+
+
+def h264_stream(write, width=1280, monitor=0, max_fps=30):
+    """The screen as H.264 (Windows' own encoder), each frame as [4-byte length][1 byte: 1 = keyframe][Annex B].
+
+    Returns False, having sent nothing, if there is no encoder, so the caller can fall back to JPEG.
+    Like the JPEG stream it skips an unchanged screen (a heartbeat every second) and, when the phone
+    can't keep up, lowers the bitrate; the picture size stays fixed for the life of the stream."""
+    global _h264_failed
+    if _h264_failed or not h264 or not Image:
+        return False
+    width = max(320, min(int(width), 3840))
+    fps = max(10, min(int(max_fps), 30))
+    try:
+        with capture_lock:
+            w, h, bgra = grab_screen(width, int(monitor))
+        target = bitrate = h264_bitrate(width)
+        enc = h264.H264Encoder(w, h, fps=fps, bitrate=bitrate)
+    except Exception as e:
+        print("H.264 unavailable:", e)
+        _h264_failed = True
+        return False
+    def encode(*args, **kw):
+        try:
+            return enc.encode(*args, **kw)
+        except Exception as e:      # the encoder (not the network) broke: stay on JPEG from now on
+            global _h264_failed
+            print("H.264 encoder failed, using JPEG from now on:", e)
+            _h264_failed = True
+            raise
+
+    try:
+        first = encode(bgra, w, h, force_key=True)
+        codec = h264.codec_string(first[0][1]) if first else None
+        if not codec:
+            raise OSError("the encoder gave no keyframe")
+        write(None, {"X-Format": "h264-frames", "X-Codec": codec})
+        last_sum, last_sent, slow, fast, out = None, 0.0, 0, 0, first
+        while True:
+            t0 = time.perf_counter()
+            if not out:
+                with capture_lock:
+                    w2, h2, bgra = grab_screen(width, int(monitor))
+                s = zlib.adler32(bgra)
+                if s == last_sum and time.time() - last_sent < 1.0:
+                    time.sleep(max(0.0, 1 / fps - (time.perf_counter() - t0)))
+                    continue
+                last_sum = s
+                out = encode(bgra, w2, h2)
+            t1 = time.perf_counter()
+            for key, data in out:
+                write(struct.pack(">I", len(data) + 1) + (b"\x01" if key else b"\x00") + data, None)   # blocks when the phone is behind
+            out = None
+            last_sent, spent = time.time(), time.perf_counter() - t1
+            if spent > 0.12:                                    # link too slow: fewer bits
+                slow, fast = slow + 1, 0
+                if slow >= 2:
+                    bitrate = max(300_000, int(bitrate * 0.7))
+                    enc.set_bitrate(bitrate)
+                    slow = 0
+            elif spent < 0.03:                                  # plenty of room: recover
+                fast, slow = fast + 1, 0
+                if fast >= 30 and bitrate < target:
+                    bitrate = min(target, int(bitrate * 1.15))
+                    enc.set_bitrate(bitrate)
+                    fast = 0
+            else:
+                slow = fast = 0
+            time.sleep(max(0.0, 1 / fps - (time.perf_counter() - t0)))
+    finally:
+        enc.close()
+
+
+def video_stream(write, width=1280, monitor=0, quality=65, max_fps=30, codec="jpeg"):
+    """Pushes the screen as a never-ending run of frames, each as [4-byte length][bytes]: H.264 if the
+    phone asked for it (codec="h264") and this PC can, otherwise JPEG.
 
     One long-lived connection replaces a request per frame, so there is no round trip between
     frames. Unchanged screens are skipped (a heartbeat goes out every second), and when the
     phone's link can't keep up the picture quality and size are lowered automatically."""
+    if codec == "h264" and h264_stream(write, width, monitor, max_fps) is not False:
+        return
     width = max(320, min(int(width), 3840))
     target_q, q, scale = max(30, min(int(quality), 90)), max(30, min(int(quality), 90)), 1.0
     last_sum, last_sent, slow, fast = None, 0.0, 0, 0
@@ -1457,6 +1540,10 @@ def connected_devices():
 # ---------------------------------------------------------------- API
 
 import vigem
+try:  # H.264 screen video through Windows' own encoder; JPEG stays the fallback
+    import h264
+except ImportError:
+    h264 = None
 
 PAD = {"last": 0.0, "active": False}
 PAD_AXES = ("lx", "ly", "rx", "ry", "lt", "rt")
@@ -1923,7 +2010,8 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             pass
         video_stream(self._stream_writer(), body.get("width", 1280), body.get("monitor", 0),
-                     body.get("quality", 65), max(5, min(int(body.get("fps", 30)), 60)))
+                     body.get("quality", 65), max(5, min(int(body.get("fps", 30)), 60)),
+                     "h264" if body.get("codec") == "h264" else "jpeg")
 
 
 # ---------------------------------------------------------------- running

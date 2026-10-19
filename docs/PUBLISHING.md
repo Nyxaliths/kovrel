@@ -97,8 +97,10 @@ These couldn't be tested from the PC alone:
       then Get certificate (needs HTTPS Certificates on in the Tailscale admin console)
 - [ ] Virtual controller with ViGEmBus installed
 - [ ] PC sound on iPhone, a large file both ways, autostart after a reboot
+- [ ] H.264 video on a real iPhone (needs iOS 16.4+ and the HTTPS page; checked in a desktop browser only):
+      Screen tab and Game, the "Video" setting, and that it falls back to JPEG on plain http
 
 ## Not built (on purpose, for later)
 
 - **Auto-update**: needs a place to host releases and signature checking; design it together with signing.
-- Mac/Linux versions, screen recording, H.264 video (needs trusted HTTPS: possible now with Tailscale's certificate).
+- Mac/Linux versions, screen recording.

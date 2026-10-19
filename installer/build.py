@@ -76,7 +76,7 @@ def build_app():
         "--add-data", f"{ROOT / 'vendor' / 'NOTICE.txt'}{SEP}.",
         "--add-data", f"{ROOT / 'vendor' / 'LICENSE-vgamepad.txt'}{SEP}.",
         "--hidden-import", "pystray._win32",
-        "--hidden-import", "security", "--hidden-import", "server", "--hidden-import", "vigem",
+        "--hidden-import", "security", "--hidden-import", "server", "--hidden-import", "vigem", "--hidden-import", "h264",
         "--collect-submodules", "winrt",
         "--collect-submodules", "pycaw",
         "--collect-submodules", "comtypes",

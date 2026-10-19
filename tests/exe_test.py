@@ -71,6 +71,16 @@ for https in (False, True):
             n = struct.unpack(">I", vr.read(4))[0]; blob = vr.read(n); assert blob[:2] == b"\xff\xd8"; n_frames += 1
         check(f"[{label}] video frames flow ({n_frames / 2.5:.0f}/s, includes the idle heartbeat)", n_frames >= 2)
         c.close()
+        # H.264 from the exe: the module is bundled and Windows' encoder works from the frozen app
+        c = conn(https); c.request("POST", "/api/video", json.dumps({"width": 960, "monitor": 0, "quality": 65, "fps": 30, "codec": "h264"}), {"X-Token": token, "Content-Type": "application/json"})
+        vr = c.getresponse()
+        if vr.headers["X-Format"] == "h264-frames":
+            n = struct.unpack(">I", vr.read(4))[0]; blob = vr.read(n)
+            check(f"[{label}] H.264 stream from the exe starts with a keyframe", vr.headers["X-Codec"].startswith("avc1.") and blob[0] == 1 and blob[1:5] == b"\x00\x00\x00\x01")
+        else:
+            print("     (this PC has no H.264 encoder: the exe fell back to JPEG)")
+            check(f"[{label}] without an encoder the exe falls back to JPEG", vr.headers["X-Format"] == "jpeg-frames")
+        c.close()
         # sign in as a NEW device -> the exe must show an approval window
         s, d, _ = call(https, "login", {"secret": PIN, "device": "exe-newdev-0002", "name": "Brand new phone"}, tok="")
         check(f"[{label}] new device -> pending", s == 200 and d["status"] == "pending", str(d))

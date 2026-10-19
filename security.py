@@ -164,10 +164,15 @@ def put(key, value):
 RECENT = collections.deque(maxlen=100)
 
 
+def _log_value(v):
+    """One line, no control characters: a device or file name can't forge extra log lines."""
+    return re.sub(r"[\x00-\x1f\x7f]", " ", str(v))
+
+
 def audit(event, **fields):
     line = f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S} | {event}"
     if fields:
-        line += " | " + " ".join(f"{k}={v}" for k, v in fields.items())
+        line += " | " + " ".join(f"{k}={_log_value(v)}" for k, v in fields.items())
     RECENT.append(line)
     try:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -487,8 +492,8 @@ def revoke_all():
 
 def create_automation_key(name="Automation"):
     """A limited key (it can only run your buttons) for iPhone Shortcuts, Tasker etc."""
-    dev_id = "auto-" + secrets.token_hex(4)
-    token = _issue(dev_id, _clean_name(name), "", scope="automation")
+    dev_id, name = "auto-" + secrets.token_hex(4), _clean_name(name)
+    token = _issue(dev_id, name, "", scope="automation")
     audit("automation_key_created", name=name)
     return dev_id, token
 

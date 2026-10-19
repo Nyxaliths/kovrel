@@ -1118,6 +1118,8 @@ def processes(limit=80, query=""):
 
 
 def kill_process(name):
+    if not psutil:
+        raise ValueError("Closing programs isn't available.")
     name = str(name).lower()
     if name in PROTECTED_PROCESSES:
         raise ValueError("Windows needs that one. It can't be closed from here.")

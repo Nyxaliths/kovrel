@@ -24,11 +24,11 @@ jobs:
     env:
       SIGN: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4   # for the phone page syntax check
+      - uses: actions/setup-node@v7   # for the phone page syntax check
         with:
           node-version: "22"
       - run: python -m pip install -r requirements.txt
@@ -57,7 +57,7 @@ jobs:
       - name: Upload unsigned app
         id: upload-app
         if: env.SIGN == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Kovrel-app-unsigned
           path: build/dist/Kovrel
@@ -88,7 +88,7 @@ jobs:
       - name: Upload unsigned installer
         id: upload-setup
         if: env.SIGN == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Kovrel-Setup-unsigned
           path: build/Kovrel-Setup.exe
@@ -124,7 +124,7 @@ jobs:
           "SHA-256: $h"
 
       - name: Keep the installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Kovrel-Setup-${{ steps.ver.outputs.version }}
           path: build/Kovrel-Setup.exe
@@ -137,13 +137,19 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
           SHA256: ${{ steps.hash.outputs.sha256 }}
         run: |
-          # Release notes = this version's part of CHANGELOG.md + the hash.
+          # Release notes: what Kovrel is, how to install it (and the SmartScreen warning), this version's part
+          # of CHANGELOG.md, and the hash.
           $lines = Get-Content CHANGELOG.md -Encoding utf8
           $start = [array]::IndexOf($lines, "## $env:VERSION")
           if ($start -lt 0) { throw "CHANGELOG.md has no '## $env:VERSION' section" }
-          $notes = @()
+          $notes = @(
+            'Control your Windows PC from your phone''s browser. No app, no account, no cloud.', '',
+            'Install: download `Kovrel-Setup.exe` below and run it. It installs over your current version and keeps your settings and approved phones. Windows may say "Windows protected your PC" because the installer isn''t signed yet: click **More info › Run anyway**. When Kovrel first starts, click Allow when Windows asks about network access.', '',
+            "## What's new in $env:VERSION", ''
+          )
           foreach ($l in $lines[($start + 1)..($lines.Count - 1)]) { if ($l -like '## *') { break }; $notes += $l }
-          $notes += '', "SHA-256: ``$env:SHA256``", '',
-                    '[Code signing](https://github.com/Nyxaliths/kovrel#code-signing)'
+          $notes += '', 'Full list: [CHANGELOG.md](https://github.com/Nyxaliths/kovrel/blob/main/CHANGELOG.md)', '',
+                    'SHA-256 of `Kovrel-Setup.exe`:', "``$env:SHA256``", '',
+                    'Why is it unsigned? See [Code signing](https://github.com/Nyxaliths/kovrel#code-signing).'
           $notes -join "`n" | Out-File notes.md -Encoding utf8
           gh release create "v$env:VERSION" build/Kovrel-Setup.exe --draft --title "Kovrel $env:VERSION" --notes-file notes.md

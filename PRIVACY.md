@@ -15,6 +15,9 @@ sent to the people who make Kovrel, because there is nowhere to send it.
   **Settings › Access › Updates**), when you ask it to get a Tailscale certificate (that goes through the
   Tailscale app on your PC), and when a button or macro you made opens a website.
 - Updates never install by themselves: Kovrel only shows "update available" and opens the release page.
+- Two small links open in your browser only when you click them: **Support Kovrel** (buymeacoffee.com) on the
+  PC window and on the phone's Settings page, and **Install Tailscale** (tailscale.com) on the PC window when
+  you pick **Away** and Tailscale isn't installed. Kovrel itself sends nothing to those sites.
 - Tailscale is a separate service with its own privacy policy. Kovrel only asks the Tailscale app on your
   PC for its status and, if you click **Get certificate**, for a certificate.
 

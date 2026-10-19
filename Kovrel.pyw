@@ -56,6 +56,8 @@ BG, CARD, CARD2, FG, MUTED, BORDER = "#0E1013", "#171A1F", "#22262D", "#ECEEF1",
 PRIMARY, PRIMARY_HOVER, ON_PRIMARY = "#2FD6A3", "#6EE7C5", "#04291D"
 GREEN, RED, AMBER = "#2FD6A3", "#F26464", "#F5B342"
 FONT = "Segoe UI"
+SUPPORT_URL = "https://buymeacoffee.com/nyxaliths"     # opened only when the user clicks "Support Kovrel"
+TAILSCALE_URL = "https://tailscale.com/download"
 
 
 def make_shortcut(path, args=""):
@@ -85,7 +87,8 @@ class App:
         self.approvals = {}      # request id -> its dialog window
         self.sec_win = None
         self.qr_mode = "home"    # which address the QR code shows: "home" (Wi-Fi) or "away" (Tailscale)
-        self.ts = {"installed": False, "running": False, "ip": "", "name": "", "cert_domains": [], "error": ""}
+        self.ts = {"installed": False, "running": False, "ip": "", "name": "", "cert_domains": [], "error": "",
+                   "checking": True}   # until the first look at Tailscale finishes (don't offer an install yet)
         self.update = None       # (version, page) when a newer Kovrel is out
         self.start_server()
 
@@ -216,6 +219,8 @@ class App:
         self.url_entry.pack(fill="x", pady=(2, 0))
         self.secure_lbl = tk.Label(c, bg=CARD, font=(FONT, 8), wraplength=360, justify="center")
         self.secure_lbl.pack(pady=(4, 0))
+        # Shown only on "Away" while Tailscale isn't installed on this PC (see draw_qr).
+        self.ts_btn = self.button(c, "Install Tailscale", lambda: webbrowser.open(TAILSCALE_URL), primary=True)
 
         c = self.card(pad, pady=(10, 0))
         row = tk.Frame(c, bg=CARD)
@@ -245,6 +250,13 @@ class App:
         self.check(pad, "Start Kovrel with Windows", self.autostart, self.toggle_autostart).pack(anchor="w", pady=(12, 0))
         tk.Label(pad, text="Closing this window keeps Kovrel running in the tray (bottom-right).",
                  bg=BG, fg=MUTED, font=(FONT, 8)).pack(anchor="w", pady=(4, 0))
+        # A small, quiet way to say thanks. Nothing is contacted unless this is clicked.
+        support = tk.Label(pad, text="Support Kovrel · buy me a coffee", bg=BG, fg=MUTED, font=(FONT, 9), cursor="hand2")
+        support.pack(anchor="w", pady=(10, 0))
+        support.bind("<Button-1>", lambda e: webbrowser.open(SUPPORT_URL))
+        support.bind("<Enter>", lambda e: support.configure(fg=PRIMARY))
+        support.bind("<Leave>", lambda e: support.configure(fg=MUTED))
+        self.support_lbl = support
 
     @staticmethod
     def qr_image(url, size=180):
@@ -275,8 +287,18 @@ class App:
         for mode, b in self.mode_btns.items():
             on = mode == self.qr_mode
             b.configure(bg=CARD if on else CARD2, fg=FG if on else MUTED)
-        if away and not url:
-            self.secure_lbl.configure(text="Tailscale isn't connected on this PC. See Settings › Remote.", fg=AMBER)
+        checking = self.ts.get("checking")
+        installer = away and not url and not self.ts["installed"] and not checking
+        if installer and not self.ts_btn.winfo_ismapped():
+            self.ts_btn.pack(pady=(10, 0))
+        elif not installer and self.ts_btn.winfo_ismapped():
+            self.ts_btn.pack_forget()
+        if away and not url and checking:
+            self.secure_lbl.configure(text="Checking Tailscale…", fg=MUTED)
+        elif installer:
+            self.secure_lbl.configure(text="Away from home, Kovrel needs Tailscale (free). It isn't installed on this PC yet.", fg=AMBER)
+        elif away and not url:
+            self.secure_lbl.configure(text="Tailscale is installed but not connected. Open it and sign in, then this QR code appears.", fg=AMBER)
         elif away:
             self.secure_lbl.configure(text="Turn on Tailscale on your phone first. A new phone needs your OK on this PC once.", fg=MUTED)
         elif self.scheme == "https":
@@ -284,6 +306,12 @@ class App:
         else:
             self.secure_lbl.configure(text="Phone and PC on the same Wi-Fi. On shared Wi-Fi, turn on the secure connection in Settings.", fg=MUTED)
         self._drawn_url = url
+        self._drawn_state = self.qr_state()
+        self.fit_height()
+
+    def qr_state(self):
+        """What the QR card depends on besides the address: redraw when it changes (e.g. Tailscale gets installed)."""
+        return (self.qr_mode, bool(security.get("remote")), self.ts["installed"], self.ts["running"], bool(self.ts.get("checking")))
 
     def refresh(self):
         remote_on = bool(security.get("remote"))
@@ -292,7 +320,8 @@ class App:
         elif not remote_on and self.mode_row.winfo_ismapped():
             self.mode_row.pack_forget()
             self.qr_mode = "home"
-        if self.qr_label.cget("image") == "" or getattr(self, "_drawn_url", None) != self.shown_url():
+        if (self.qr_label.cget("image") == "" or getattr(self, "_drawn_url", None) != self.shown_url()
+                or getattr(self, "_drawn_state", None) != self.qr_state()):
             self.draw_qr()
         pin = server.get_pin()
         if pin:
@@ -321,7 +350,18 @@ class App:
         else:
             self.paused_bar.pack_forget()
             self.pause_btn.configure(text="Pause")
+        self.fit_height()
         self.root.after(1500, self.refresh)
+
+    def fit_height(self):
+        """The window is a fixed width but grows or shrinks to show everything (the Away switch, the Tailscale
+        install button and the update bar come and go). Skipped while it is hidden in the tray."""
+        if self.root.state() != "normal":
+            return
+        self.root.update_idletasks()
+        need = self.root.winfo_reqheight()
+        if abs(self.root.winfo_height() - need) > 2:
+            self.root.geometry(f"{self.root.winfo_width()}x{need}")
 
     # ------------------------------------------------------------ actions
     def new_pin(self):
@@ -611,7 +651,7 @@ class App:
         text("Through Tailscale: a free private network between your own devices. Nothing is opened to the "
              "internet, and every new phone still needs your OK on this PC.")
         status = text("", FG, pady=(10, 0))
-        get_ts = self.button(f, "Get Tailscale…", lambda: webbrowser.open("https://tailscale.com/download"))
+        get_ts = self.button(f, "Get Tailscale…", lambda: webbrowser.open(TAILSCALE_URL))
 
         on = tk.BooleanVar(value=bool(security.get("remote")))
 
@@ -688,7 +728,10 @@ class App:
             if not win.winfo_exists():
                 return
             ts = self.ts
-            if not ts["installed"]:
+            if ts.get("checking"):
+                status.configure(text="●  Checking Tailscale…", fg=MUTED)
+                get_ts.pack_forget()
+            elif not ts["installed"]:
                 status.configure(text="●  Tailscale isn't installed on this PC.", fg=AMBER)
                 get_ts.pack(anchor="w", pady=(6, 0), after=status)
             elif not ts["running"]:
@@ -834,6 +877,7 @@ class App:
 
     def show(self):
         self.root.deiconify()
+        self.fit_height()
         self.root.lift()
         self.root.focus_force()
 

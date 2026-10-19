@@ -86,6 +86,7 @@ class App:
         self.sec_win = None
         self.qr_mode = "home"    # which address the QR code shows: "home" (Wi-Fi) or "away" (Tailscale)
         self.ts = {"installed": False, "running": False, "ip": "", "name": "", "cert_domains": [], "error": ""}
+        self.update = None       # (version, page) when a newer Kovrel is out
         self.start_server()
 
         self.root = tk.Tk()
@@ -110,6 +111,7 @@ class App:
         self.tray.run_detached()
         threading.Thread(target=self.wait_for_show, daemon=True).start()
         threading.Thread(target=self.poll_tailscale, daemon=True).start()
+        threading.Thread(target=self.poll_updates, daemon=True).start()
         self.refresh()
 
     # ------------------------------------------------------------ server
@@ -191,6 +193,10 @@ class App:
 
         self.paused_bar = tk.Label(pad, text="Remote control is paused. Phones can look, but not control.", bg=AMBER,
                                    fg="#1a1300", font=(FONT, 9, "bold"), pady=6)
+        self.update_bar = tk.Frame(pad, bg=CARD2, padx=12, pady=6)
+        self.update_lbl = tk.Label(self.update_bar, bg=CARD2, fg=FG, font=(FONT, 9, "bold"))
+        self.update_lbl.pack(side="left")
+        self.button(self.update_bar, "Download", lambda: webbrowser.open(self.update[1]), primary=True).pack(side="right")
 
         c = self.card(pad, pady=(14, 0))
         self.mode_row = tk.Frame(c, bg=CARD2, padx=3, pady=3)   # shown only while remote access is on
@@ -304,6 +310,11 @@ class App:
             self.status.configure(text="● Running", fg=GREEN)
             devs = server.connected_devices()
             self.devices.configure(fg=FG, text="\n".join(f"•  {d['name']}" for d in devs) or "No devices connected right now")
+        if self.update and not self.update_bar.winfo_ismapped():
+            self.update_lbl.configure(text=f"Kovrel {self.update[0]} is available")
+            self.update_bar.pack(fill="x", pady=(10, 0), after=self.head)
+        elif not self.update and self.update_bar.winfo_ismapped():
+            self.update_bar.pack_forget()
         if server.PAUSED["on"]:
             self.paused_bar.pack(fill="x", pady=(10, 0), after=self.head)
             self.pause_btn.configure(text="Resume")
@@ -531,6 +542,16 @@ class App:
         box = ttk.Combobox(f, textvariable=days, state="readonly", values=[f"{d} day" + ("s" if d > 1 else "") for d in security.SESSION_CHOICES], width=12)
         box.pack(anchor="w", pady=(6, 0))
         box.bind("<<ComboboxSelected>>", lambda e: security.set_session_days(int(days.get().split()[0])))
+
+        section("Updates", "")
+        upd = tk.BooleanVar(value=bool(security.get("update_check", True)))
+
+        def toggle_updates():
+            security.put("update_check", upd.get())
+            if not upd.get():
+                self.update = None
+        self.check(f, "Tell me when a new version is out (asks GitHub once a day; nothing about you is sent)",
+                   upd, toggle_updates).pack(anchor="w", pady=(4, 0))
 
         section("Pause remote control", "Stops every phone from controlling this PC at once. They can still look. Also in the tray menu.")
         paused = tk.BooleanVar(value=server.PAUSED["on"])
@@ -771,6 +792,26 @@ class App:
             self.ts = server.tailscale_status()
             self.renew_tailscale_cert()
             time.sleep(15)
+
+    def poll_updates(self):
+        """Once a day (first check a minute after start): is a newer Kovrel on GitHub?"""
+        time.sleep(60)
+        told = None
+        while True:
+            if security.get("update_check", True):
+                try:
+                    self.update = server.check_for_update()
+                except Exception as e:
+                    print("update check:", e)
+                if self.update and self.update[0] != told:
+                    told = self.update[0]
+                    try:
+                        self.tray.notify(f"Kovrel {told} is available. Open Kovrel to download it.", "Update available")
+                    except Exception:
+                        pass
+            else:
+                self.update = None
+            time.sleep(24 * 3600)
 
     def renew_tailscale_cert(self):
         """Tailscale certificates last 90 days. Renew one in use when it has under 20 days left."""

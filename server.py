@@ -49,7 +49,7 @@ CONFIG_DIR = security.CONFIG_DIR
 SHARED_DIR = Path(os.environ.get("KOVREL_FILES_DIR") or Path.home() / "Downloads" / "Kovrel")
 OLD_SHARED_DIR = SHARED_DIR.with_name("Vexari")  # the app's name before 2.0
 PORT = int(os.environ.get("KOVREL_PORT", 8765))
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 NO_WINDOW = 0x08000000  # CREATE_NO_WINDOW: no console flash when run from pythonw
 
 if OLD_SHARED_DIR.is_dir() and not SHARED_DIR.exists():  # keep files people already sent
@@ -2042,6 +2042,38 @@ def remote_url(st=None):
     if security.get("https") and name and left > 0:
         return f"https://{name}:{PORT}"
     return f"{'https' if security.get('https') else 'http'}://{st['ip']}:{PORT}"
+
+
+# ---------------------------------------------------------------- update check
+# Asks GitHub for the newest release. Nothing about the PC or its user is sent; the download
+# itself is left to the person (it opens the release page), so nothing installs by itself.
+
+RELEASES_API = "https://api.github.com/repos/Nyxaliths/kovrel/releases/latest"
+RELEASES_PAGE = "https://github.com/Nyxaliths/kovrel/releases/latest"
+
+
+def version_tuple(v):
+    return tuple(int(x) for x in re.findall(r"\d+", str(v))[:3]) or (0,)
+
+
+def check_for_update(current=VERSION, fetch=None):
+    """(newer_version, page_url) when GitHub has a newer release, else None."""
+    if fetch is None:
+        import urllib.request
+
+        def fetch():
+            req = urllib.request.Request(RELEASES_API, headers={"Accept": "application/vnd.github+json",
+                                                                "User-Agent": f"Kovrel/{VERSION}"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return json.loads(r.read(200_000))
+    data = fetch()
+    if data.get("draft") or data.get("prerelease"):
+        return None
+    tag = str(data.get("tag_name") or "").lstrip("vV")
+    if tag and version_tuple(tag) > version_tuple(current):
+        url = str(data.get("html_url") or "")
+        return tag, url if url.startswith("https://github.com/") else RELEASES_PAGE
+    return None
 
 
 CERT_FILE, KEY_FILE = CONFIG_DIR / "kovrel-cert.pem", CONFIG_DIR / "kovrel-key.pem"

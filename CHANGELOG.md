@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1
+
+- The PC app tells you when a new version is out (asks GitHub once a day; opens the download page,
+  never installs anything by itself; can be turned off in Settings › Access)
+
 ## 2.0.0
 
 The app is now called **Kovrel** (it was Vexari). Installing 2.0 replaces Vexari and keeps your PIN,

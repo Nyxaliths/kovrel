@@ -126,6 +126,7 @@ def _load():
     cfg.setdefault("secret_kind", "pin")
     cfg.setdefault("remote", False)
     cfg.setdefault("remote_idle_min", 30)
+    cfg.setdefault("update_check", True)
     return cfg
 
 

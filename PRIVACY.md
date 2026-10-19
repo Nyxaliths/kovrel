@@ -10,8 +10,11 @@ sent to the people who make Kovrel, because there is nowhere to send it.
   those two devices.
 - The phone page is served by your PC and loads nothing from the internet (no fonts, scripts or images
   from other sites).
-- Kovrel itself only contacts the internet if you ask it to get a Tailscale certificate (that request
-  goes through the Tailscale app on your PC) or if a button or macro you made opens a website.
+- Kovrel itself contacts the internet in only three cases: once a day it asks GitHub whether a newer
+  version exists (an ordinary web request to api.github.com with nothing about you in it; turn it off in
+  **Settings › Access › Updates**), when you ask it to get a Tailscale certificate (that goes through the
+  Tailscale app on your PC), and when a button or macro you made opens a website.
+- Updates never install by themselves: Kovrel only shows "update available" and opens the release page.
 - Tailscale is a separate service with its own privacy policy. Kovrel only asks the Tailscale app on your
   PC for its status and, if you click **Get certificate**, for a certificate.
 

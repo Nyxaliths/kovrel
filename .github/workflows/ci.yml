@@ -24,5 +24,6 @@ jobs:
       - run: python tests/sec_test.py
       - run: python tests/migrate_test.py
       - run: python tests/remote_test.py
+      - run: python tests/update_test.py
       - run: python tests/page_check.py
       - run: python tests/vigem_test.py

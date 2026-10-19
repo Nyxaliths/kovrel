@@ -134,6 +134,8 @@ textarea { min-height: 96px; resize: vertical; }
    so the controls below never move. */
 .viewer img, .viewer canvas { display: block; width: calc(var(--zoom, 1) * 100%); height: calc(var(--zoom, 1) * 100%); object-fit: contain; user-select: none;
   -webkit-user-drag: none; -webkit-touch-callout: none; cursor: pointer; }
+a.support { color: var(--muted-fg); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+a.support:active { color: var(--primary); }
 .viewer-msg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; color: #B9C0C9; font-size: 15px; pointer-events: none; }
 .badge { position: sticky; float: right; top: 8px; margin: 8px 8px -30px 0; z-index: 2; pointer-events: none;
   font-size: 12px; font-weight: 600; color: #fff; background: rgba(0,0,0,.55); border-radius: 999px; padding: 3px 9px; font-variant-numeric: tabular-nums; }
@@ -760,6 +762,7 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
       </div>
       <button class="btn danger" id="logout"><svg class="icon"><use href="#i-logout"/></svg>Sign out of this device</button>
       <p class="muted" style="text-align:center" id="verText">Kovrel</p>
+      <p class="muted" style="text-align:center"><a class="support" href="https://buymeacoffee.com/nyxaliths" target="_blank" rel="noopener noreferrer">Support Kovrel · buy me a coffee</a></p>
     </section>
   </main>
 

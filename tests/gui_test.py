@@ -1,5 +1,5 @@
 ﻿"""Runs the real Kovrel app UI against a throwaway APPDATA, clicks through it and screenshots each window."""
-import ctypes, ctypes.wintypes as wt, http.client, importlib.machinery, importlib.util, json, os, ssl, sys, tempfile, threading, time
+import ctypes, ctypes.wintypes as wt, http.client, json, os, ssl, sys, tempfile, threading, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path
 from PIL import Image
@@ -16,9 +16,12 @@ RES = open(OUT / "results.txt", "w", encoding="utf-8")
 print("RESULTS " + str(OUT / "results.txt"), flush=True)   # before the app takes over stdout
 def say(text): RES.write(text + "\n"); RES.flush()
 sys.path.insert(0, str(APP))
-loader = importlib.machinery.SourceFileLoader("kovrel_app", str(APP / "Kovrel.pyw"))
-spec = importlib.util.spec_from_loader("kovrel_app", loader)
-mod = importlib.util.module_from_spec(spec); loader.exec_module(mod)
+# Load Kovrel.pyw under its own single-instance name: otherwise a Kovrel that is already running on this PC
+# would be asked to show its window and this test would exit before it starts.
+import types
+src = (APP / "Kovrel.pyw").read_text("utf-8-sig").replace("Local\\\\Kovrel_show", "Local\\\\Kovrel_gui_test_show")
+mod = types.ModuleType("kovrel_app"); mod.__file__ = str(APP / "Kovrel.pyw")
+exec(compile(src, str(APP / "Kovrel.pyw"), "exec"), mod.__dict__)
 security, server = mod.security, mod.server
 mod.messagebox.askokcancel = lambda *a, **k: True      # auto-answer confirmation boxes
 mod.messagebox.askyesno = lambda *a, **k: True
@@ -81,6 +84,24 @@ def scenario():
     time.sleep(1.5)
     on_tk(lambda: shot(app.root, "1_main.png"))
     check("server running, address shown", app.error is None and app.url.startswith("http://") and app.url.endswith(":8793"))
+    check("main window has the quiet support link", app.support_lbl.cget("text").startswith("Support Kovrel") and mod.SUPPORT_URL == "https://buymeacoffee.com/nyxaliths")
+    # --- "Away" while Tailscale isn't installed: the main page offers to install it
+    def away(ts):
+        security.put("remote", True)
+        app.ts = ts
+        app.set_qr_mode("away"); app.root.update()
+        return app.ts_btn.winfo_ismapped(), app.secure_lbl.cget("text")
+    none = {"installed": False, "running": False, "ip": "", "name": "", "cert_domains": [], "error": ""}
+    mapped, text = on_tk(lambda: away(dict(none, checking=True)))
+    check("Away: no install offer while Tailscale is still being checked", not mapped and "Checking" in text, text)
+    mapped, text = on_tk(lambda: away(none))
+    check("Away without Tailscale: Install Tailscale button on the main page", mapped and "needs Tailscale" in text, text)
+    on_tk(lambda: shot(app.root, "1b_main_away_no_tailscale.png"))
+    mapped, text = on_tk(lambda: away(dict(none, installed=True)))
+    check("Away with Tailscale installed but off: no install button, says to sign in", not mapped and "not connected" in text, text)
+    def back_home():
+        security.put("remote", False); app.set_qr_mode("home"); app.refresh(); app.root.update()
+    on_tk(back_home)
     pin = security.current_pin()
     # --- a new phone logs in -> approval pop-up
     s, d = hreq("http", "POST", "/api/login", {"secret": pin, "device": "gui-device-0001", "name": "Jo's iPhone"})

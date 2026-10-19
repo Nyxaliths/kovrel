@@ -231,6 +231,9 @@ s, d, r = call(conn(https=True), "info"); check("HTTPS info", s == 200 and d["ht
 hc.request("GET", "/"); page = hc.getresponse(); html = page.read().decode()
 check("page served with CSP + title", "Content-Security-Policy" in page.headers and "<title>" in html)
 check("home-screen icon is inside the page (works with the self-signed certificate)", 'rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,' in html)
+check("page carries the PC's version, so an open copy can tell when the PC was updated",
+      f'<meta name="kovrel-version" content="{server.VERSION}">' in html and "__KOVREL_VERSION__" not in html)
+check("support link is on the phone page (More and Settings)", html.count("https://buymeacoffee.com/nyxaliths") == 2 and "Hold click" not in html)
 for icon in ("/apple-touch-icon.png", "/apple-touch-icon-precomposed.png", "/icon-maskable.png", "/manifest.json"):
     ic = conn(); ic.request("GET", icon); ir = ic.getresponse(); data = ir.read()
     check(f"home-screen file served: {icon}", ir.status == 200 and (data[:4] == b"\x89PNG" or icon.endswith(".json")))

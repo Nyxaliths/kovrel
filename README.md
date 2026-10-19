@@ -46,9 +46,9 @@ Tip: in your phone's browser, use *Add to Home Screen* and Kovrel opens like an 
   <img src="docs/screenshot-pc.png" alt="The Kovrel window on the PC: QR code, address, PIN and connected phones" width="46%">
 </p>
 
-Releases up to 2.0.1 are not code-signed, so Windows may show "Windows protected your PC". Click
-**More info › Run anyway** (see the [code signing policy](#code-signing-policy) for what changes). Compare
-the file's SHA-256 with the one on the release page first if you want to be sure:
+Kovrel is not code-signed yet (see [Code signing](#code-signing)), so Windows may show "Windows protected your
+PC". Click **More info › Run anyway**. Compare the file's SHA-256 with the one on the release page first if
+you want to be sure:
 
 ```powershell
 Get-FileHash .\Kovrel-Setup.exe -Algorithm SHA256
@@ -112,21 +112,18 @@ py -3.12 installer\build.py    # builds build\Kovrel-Setup.exe
 
 `KOVREL_PORT` changes the port (default 8765).
 
-## Code signing policy
+## Code signing
 
-Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
-[SignPath Foundation](https://signpath.org/) (being set up; releases after 2.0.1 will be signed).
+The installer is **not code-signed yet**. A certificate costs money, and the free route for open-source
+projects (SignPath Foundation) turned us down in October 2026 because Kovrel is too new to show enough public
+use. We plan to reapply once it has more users. Until then:
 
-- Installers are built from this repository's source by [GitHub Actions](.github/workflows/release.yml),
-  never on a personal PC. Only `Kovrel.exe` and `Kovrel-Setup.exe` are signed; the bundled Python runtime,
-  libraries and `ViGEmClient.dll` are upstream files and keep their own signatures (or none).
-- Every signing request is approved by hand.
-- Committers and reviewers: [Nyxaliths](https://github.com/Nyxaliths)
-- Approvers: [Nyxaliths](https://github.com/Nyxaliths)
-
-Privacy: Kovrel will not transfer any information to other networked systems unless you ask it to, except
-the daily update check, which asks GitHub whether a new version exists and can be turned off. See
-[PRIVACY.md](PRIVACY.md).
+- Releases are built from this repository's source by [GitHub Actions](.github/workflows/release.yml), and
+  each one lists the file's SHA-256, so you can check you got what was built.
+- The code is open and the tests run on every change. Windows SmartScreen and a few antivirus programs
+  may still warn about an unsigned installer.
+- The release workflow can already sign with SignPath once it is set up (see
+  [docs/PUBLISHING.md](docs/PUBLISHING.md)).
 
 ## License
 

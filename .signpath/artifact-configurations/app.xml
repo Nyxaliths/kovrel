@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "app": the PyInstaller folder (build/dist/Kovrel) as uploaded by
+     .github/workflows/release.yml. Signs only Kovrel.exe; the Python runtime and libraries inside
+     _internal are upstream binaries and stay as they are. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="Kovrel.exe" product-name="Kovrel" product-version="${version}">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

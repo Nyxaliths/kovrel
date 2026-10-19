@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 import tkinter as tk
+import webbrowser
 import winreg
 import zipfile
 from pathlib import Path
@@ -31,6 +32,7 @@ OLD_DIR = Path(os.environ["LOCALAPPDATA"]) / "Programs" / OLD_APP
 UNINSTALL_KEY = rf"Software\Microsoft\Windows\CurrentVersion\Uninstall\{APP}"
 OLD_UNINSTALL_KEY = rf"Software\Microsoft\Windows\CurrentVersion\Uninstall\{OLD_APP}"
 NO_WINDOW = 0x08000000
+PRIVACY_URL = "https://github.com/Nyxaliths/kovrel/blob/main/PRIVACY.md"
 
 BG, CARD, FG, MUTED, BORDER = "#0E1013", "#171A1F", "#ECEEF1", "#8F96A1", "#2A2F37"
 PRIMARY, PRIMARY_HOVER, ON_PRIMARY = "#2FD6A3", "#6EE7C5", "#04291D"
@@ -207,6 +209,15 @@ class Wizard:
         bottom.pack(side="bottom", fill="x")
         self.button(bottom, "Install", self.start_install, primary=True).pack(side="right")
         self.button(bottom, "Cancel", self.root.destroy).pack(side="right", padx=8)
+        # Shown before installing (the SignPath code signing terms ask for this).
+        privacy = tk.Label(self.body, text="Privacy: no accounts, no tracking. Once a day Kovrel asks GitHub "
+                                           "whether a new version is out; turn that off in Settings › Access. "
+                                           "Read the privacy policy", bg=BG, fg=MUTED, font=(FONT, 8),
+                           justify="left", wraplength=420, cursor="hand2")
+        privacy.pack(side="bottom", anchor="w", pady=(0, 12))
+        privacy.bind("<Button-1>", lambda e: webbrowser.open(PRIVACY_URL))
+        privacy.bind("<Enter>", lambda e: privacy.configure(fg=PRIMARY))
+        privacy.bind("<Leave>", lambda e: privacy.configure(fg=MUTED))
 
     def pick_dir(self):
         d = filedialog.askdirectory(initialdir=self.dir.get(), title="Choose where to install Kovrel")

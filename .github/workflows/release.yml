@@ -144,6 +144,6 @@ jobs:
           $notes = @()
           foreach ($l in $lines[($start + 1)..($lines.Count - 1)]) { if ($l -like '## *') { break }; $notes += $l }
           $notes += '', "SHA-256: ``$env:SHA256``", '',
-                    '[Code signing policy](https://github.com/Nyxaliths/kovrel#code-signing-policy)'
+                    '[Code signing](https://github.com/Nyxaliths/kovrel#code-signing)'
           $notes -join "`n" | Out-File notes.md -Encoding utf8
           gh release create "v$env:VERSION" build/Kovrel-Setup.exe --draft --title "Kovrel $env:VERSION" --notes-file notes.md

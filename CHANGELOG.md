@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## 2.0.2
 
+- **Away mode helps you get Tailscale.** On the PC window, **Away** now shows an **Install Tailscale** button
+  when Tailscale isn't installed on the PC, and an **Install Tailscale on your phone** button (with a QR code to
+  scan) once it is. It used to be only in Settings › Remote.
+- A small **Support Kovrel · buy me a coffee** link on the PC window and on the phone's Settings page. It only
+  opens a web page when you click it.
+- The PC window now fits its content, so nothing at the bottom is cut off.
 - **Smoother screen with less data: H.264 video.** When the phone's page is secure (HTTPS or Tailscale's
   certificate) and Windows has its built-in H.264 encoder, the screen is sent as H.264 instead of JPEG
   pictures, using far less data for the same sharpness. Nothing is bundled: it uses Windows' own encoder.

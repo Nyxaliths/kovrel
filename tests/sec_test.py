@@ -89,6 +89,11 @@ try: s.login(newpin, "bad id!", "x", "1.1.1.1"); check("bad device id rejected",
 except s.AuthError as e: check("bad device id rejected", e.status == 400)
 
 check("activity log written", "device_approved" in s.AUDIT_FILE.read_text())
+before = len(s.AUDIT_FILE.read_text().splitlines())
+s.audit("file_uploaded", file="evil.txt\n2026-01-01 00:00:00 | login_ok | device=fake", device="x\r\ny")
+after = s.AUDIT_FILE.read_text().splitlines()
+check("a name with line breaks can't add fake lines to the activity log",
+      len(after) == before + 1 and "fake" in after[-1] and "\r" not in after[-1])
 check("config persisted", "shortcuts" in json.loads(s.CONFIG_FILE.read_text()))
 print("\nRESULT:", "FAILED" if bad else "all passed")
 sys.exit(1 if bad else 0)

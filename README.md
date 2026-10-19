@@ -2,6 +2,8 @@
 
 Control your Windows PC from your phone. No phone app, no account, no cloud.
 
+**[Download the latest version](../../releases/latest)** · [What's new](CHANGELOG.md) · [Security](SECURITY.md) · [Privacy](PRIVACY.md)
+
 Kovrel runs a small program on your PC. Your phone opens it in the browser (scan the QR code),
 and you get the PC's screen, a touchpad, a keyboard, media keys, a game controller and more.
 Everything stays between your phone and your PC.
@@ -20,7 +22,7 @@ Everything stays between your phone and your PC.
 ## Features
 
 - **Screen**: live view of the PC (about 30 fps on good Wi-Fi), tap to click, long-press to right-click,
-  zoom, drag mode, full screen, any monitor, full-quality screenshots
+  double-tap Left to hold and drag, zoom, full screen, any monitor, full-quality screenshots
 - **Touchpad and keyboard**: trackpad gestures, typing and voice typing, shortcuts, sticky Ctrl/Alt/Shift/Win,
   clipboard both ways
 - **Game controller**: an Xbox- or PlayStation-style controller over the PC's screen. It sends keyboard and
@@ -34,7 +36,7 @@ Everything stays between your phone and your PC.
 
 ## Install
 
-1. Download `Kovrel-Setup.exe` from [Releases](../../releases) and run it. It installs for your Windows
+1. Download `Kovrel-Setup.exe` from the [latest release](../../releases/latest) and run it. It installs for your Windows
    user only; no administrator rights are needed.
 2. The first time Kovrel starts, Windows asks whether it may use the network. Click **Allow**.
 3. Scan the QR code in the Kovrel window with your phone's camera. Phone and PC must be on the same Wi-Fi.
@@ -56,7 +58,9 @@ Get-FileHash .\Kovrel-Setup.exe -Algorithm SHA256
 
 ## Using it away from home
 
-1. Install Tailscale on the PC and on your phone, and sign in to the same account on both.
+1. Install Tailscale on the PC and on your phone, and sign in to the same account on both. On the PC,
+   switch the QR code to **Away**: it offers **Install Tailscale** (and, once it's on the PC, a QR code
+   to install it on your phone).
 2. On the PC: **Kovrel › Settings › Remote**, then turn on remote access. It asks for a password of at
    least 12 characters, which replaces the 6-digit PIN.
 3. With Tailscale on, open the address shown in the Remote tab on the phone (or switch the main
@@ -110,7 +114,14 @@ py -3.12 tests\run_all.py      # tests; they use throwaway settings and never to
 py -3.12 installer\build.py    # builds build\Kovrel-Setup.exe
 ```
 
-`KOVREL_PORT` changes the port (default 8765).
+`KOVREL_PORT` changes the port (default 8765). `tests\run_all.py --all` also runs the window, video and
+installed-installer tests (build first).
+
+## Contributing
+
+Bug reports and pull requests are welcome. Please run `py -3.12 tests\run_all.py` before opening a pull
+request; GitHub runs the same checks on every change. For security problems, follow [SECURITY.md](SECURITY.md)
+instead of opening a public issue. How releases are made is in [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## Code signing
 

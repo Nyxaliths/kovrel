@@ -209,7 +209,7 @@ class Wizard:
         bottom.pack(side="bottom", fill="x")
         self.button(bottom, "Install", self.start_install, primary=True).pack(side="right")
         self.button(bottom, "Cancel", self.root.destroy).pack(side="right", padx=8)
-        # Shown before installing (the SignPath code signing terms ask for this).
+        # Shown before installing, so people know the one thing Kovrel contacts by itself.
         privacy = tk.Label(self.body, text="Privacy: no accounts, no tracking. Once a day Kovrel asks GitHub "
                                            "whether a new version is out; turn that off in Settings › Access. "
                                            "Read the privacy policy", bg=BG, fg=MUTED, font=(FONT, 8),

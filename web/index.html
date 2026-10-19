@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="kovrel-version" content="__KOVREL_VERSION__">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1013">
 <meta name="mobile-web-app-capable" content="yes">
@@ -653,6 +654,7 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
         <button class="tile" data-go="power"><span class="ic"><svg class="icon"><use href="#i-power"/></svg></span><b>Power</b><small>Lock, sleep, wake</small></button>
         <button class="tile" data-go="settings"><span class="ic"><svg class="icon"><use href="#i-user"/></svg></span><b>Settings</b><small>Device & sign out</small></button>
       </div>
+      <p class="muted" style="text-align:center;margin-top:18px"><a class="support" href="https://buymeacoffee.com/nyxaliths" target="_blank" rel="noopener noreferrer">Support Kovrel · buy me a coffee</a></p>
     </section>
 
     <!-- ---------- Programs (task manager) ---------- -->
@@ -936,6 +938,7 @@ async function api(cmd, body = {}, { quiet = false } = {}) {
     setOnline(true);
     if (r.status === 401) { signOutLocally('You were signed out. Sign in again.'); return data; }
     if (cmd === 'ping' || r.status === 423) setPaused(r.status === 423 || !!data.paused);
+    if (cmd === 'ping') checkPageVersion(data.version);
     if (!data.ok && !quiet) toast(data.error || 'Something went wrong');
     return data;
   } catch {
@@ -943,6 +946,16 @@ async function api(cmd, body = {}, { quiet = false } = {}) {
     setOnline(false);
     return { ok: false };
   }
+}
+// The PC puts its own version into this page when it serves it. If the PC is later updated while the page
+// stays open on the phone (home-screen apps hardly ever reload), the next check-in notices and reloads it.
+const pageVersion = document.querySelector('meta[name="kovrel-version"]')?.content;
+let reloading = false;
+function checkPageVersion(serverVersion) {
+  if (reloading || !serverVersion || !pageVersion || pageVersion.startsWith('__') || serverVersion === pageVersion) return;
+  reloading = true;
+  toast('Kovrel was updated. Reloading…');
+  setTimeout(() => location.reload(), 900);
 }
 let online = true, hostName = 'Connected';
 function setOnline(on) {

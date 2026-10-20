@@ -26,6 +26,6 @@ check("every #id the script uses exists in the page", used <= ids, ", ".join(sor
 dupes = sorted({i for i in re.findall(r'id="([^"]+)"', html) if re.findall(rf'id="{re.escape(i)}"', html).__len__() > 1})
 check("no duplicate ids", not dupes, ", ".join(dupes))
 remote = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
-check("nothing is loaded from the internet (links people tap are fine)", all("github.com" in u or u.startswith("https://buymeacoffee.com/nyxaliths") for u in remote), ", ".join(remote))
+check("nothing is loaded from the internet (links people tap are fine)", all("github.com" in u or u.startswith(("https://buymeacoffee.com/nyxaliths", "https://instagram.com/kovrelapp")) for u in remote), ", ".join(remote))
 print("\nRESULT:", f"{len(bad)} FAILED: {bad}" if bad else "all passed")
 sys.exit(1 if bad else 0)

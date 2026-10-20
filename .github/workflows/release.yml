@@ -32,6 +32,21 @@ jobs:
         with:
           node-version: "22"
       - run: python -m pip install -r requirements.txt
+      # PyInstaller's prebuilt bootloader is shared by countless exes, so antivirus engines flag it on sight.
+      # Compiling our own (with the runner's MSVC) gives both exes a stub no generic signature matches.
+      - name: Compile PyInstaller bootloader
+        shell: pwsh
+        env:
+          PYINSTALLER_COMPILE_BOOTLOADER: "1"
+        run: |
+          $pin = (Select-String -Path requirements.txt -Pattern '^pyinstaller==(.+)$').Matches[0].Groups[1].Value
+          $boot = python -c "import PyInstaller, pathlib; print(pathlib.Path(PyInstaller.__file__).parent / 'bootloader' / 'Windows-64bit-intel' / 'runw.exe')"
+          $stock = (Get-FileHash $boot).Hash
+          python -m pip install --force-reinstall --no-deps --no-binary pyinstaller "pyinstaller==$pin"
+          if ($LASTEXITCODE) { throw "pip failed to build PyInstaller from source" }
+          $own = (Get-FileHash $boot).Hash
+          if ($own -eq $stock) { throw "runw.exe is still the stock bootloader: it was not compiled" }
+          "Bootloader compiled: $own (stock was $stock)"
 
       - name: Read version
         id: ver

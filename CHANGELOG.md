@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0
+
+- **Kovrel is on Instagram.** The phone's More page has a **Follow Kovrel** row that opens @kovrelapp. It
+  only opens a web page when you tap it.
+- **Fewer antivirus false alarms.** Both exes are now built with a PyInstaller loader compiled for Kovrel
+  instead of the stock one that countless other programs share, which some antivirus engines flag on sight.
+
 ## 2.0.2
 
 - **Away mode helps you get Tailscale.** On the PC window, **Away** now shows an **Install Tailscale** button

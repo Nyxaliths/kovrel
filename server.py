@@ -49,7 +49,7 @@ CONFIG_DIR = security.CONFIG_DIR
 SHARED_DIR = Path(os.environ.get("KOVREL_FILES_DIR") or Path.home() / "Downloads" / "Kovrel")
 OLD_SHARED_DIR = SHARED_DIR.with_name("Vexari")  # the app's name before 2.0
 PORT = int(os.environ.get("KOVREL_PORT", 8765))
-VERSION = "2.0.2"
+VERSION = "2.1.0"
 NO_WINDOW = 0x08000000  # CREATE_NO_WINDOW: no console flash when run from pythonw
 
 if OLD_SHARED_DIR.is_dir() and not SHARED_DIR.exists():  # keep files people already sent

@@ -3,6 +3,11 @@
   "short_name": "Kovrel",
   "start_url": "/",
   "display": "standalone",
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
   "background_color": "#0E1013",
   "theme_color": "#0E1013",
   "icons": [

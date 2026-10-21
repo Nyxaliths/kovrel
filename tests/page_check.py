@@ -27,5 +27,8 @@ dupes = sorted({i for i in re.findall(r'id="([^"]+)"', html) if re.findall(rf'id
 check("no duplicate ids", not dupes, ", ".join(dupes))
 remote = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
 check("nothing is loaded from the internet (links people tap are fine)", all("github.com" in u or u.startswith(("https://buymeacoffee.com/nyxaliths", "https://instagram.com/kovrelapp")) for u in remote), ", ".join(remote))
+import json
+man = json.load(open(os.path.join(ROOT, "web", "manifest.json"), encoding="utf-8"))
+check("manifest lists Kovrel as a share target (GET, so nothing is posted without a tap)", man.get("share_target", {}).get("method") == "GET" and man["share_target"]["action"] == "/")
 print("\nRESULT:", f"{len(bad)} FAILED: {bad}" if bad else "all passed")
 sys.exit(1 if bad else 0)

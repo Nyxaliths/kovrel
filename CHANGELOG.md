@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.2.0
+
+- **Disconnect a phone from the PC window.** Each connected phone in the main window now has a
+  **Disconnect** button. It signs that phone out and cuts its screen and sound right away; it has to be
+  approved again to come back. (Other phones see a short blip and reconnect by themselves.)
+- **Share to Kovrel (Android).** Share a link or text from any app to Kovrel, then tap **Open the link on
+  the PC** or **Copy to the PC's clipboard**. Nothing happens on the PC until you tap. It needs Kovrel added
+  to the home screen over a trusted secure address (Tailscale's certificate); iPhones don't support it.
+- **The phone says when the PC is locked**, instead of showing a black screen that ignores taps, and says the
+  PC may be asleep, off or on another network when it can't be reached for a while.
+- **A short tour for new phones**: three screens on what Kovrel does, what stays private and how you stay in
+  control. **Settings › Take the tour again** shows it any time.
+
 ## 2.1.0
 
 - **Kovrel is on Instagram.** The phone's More page has a **Follow Kovrel** row that opens @kovrelapp. It

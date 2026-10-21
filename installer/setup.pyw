@@ -23,7 +23,7 @@ import zipfile
 from pathlib import Path
 from tkinter import filedialog, ttk
 
-APP, VERSION, PUBLISHER = "Kovrel", "2.1.0", "Kovrel"
+APP, VERSION, PUBLISHER = "Kovrel", "2.2.0", "Kovrel"
 OLD_APP = "Vexari"  # the name before 2.0
 RES = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 PAYLOAD, LOGO, ICON = RES / "payload.zip", RES / "logo.png", RES / "Kovrel.ico"

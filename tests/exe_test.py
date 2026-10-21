@@ -55,7 +55,7 @@ for https in (False, True):
     label = "HTTPS" if https else "HTTP"
     p = launch(https)
     try:
-        s, d, r = call(https, "ping"); check(f"[{label}] installed exe answers, v{d.get('version')}", s == 200 and d["version"] == "2.1.0")
+        s, d, r = call(https, "ping"); check(f"[{label}] installed exe answers, v{d.get('version')}", s == 200 and d["version"] == "2.2.0")
         s, d, _ = call(https, "info", tok=""); check(f"[{label}] info reports the mode", d["https"] is https)
         s, d, _ = call(https, "media"); check(f"[{label}] volume works from the exe (COM bundled)", s == 200 and d["volume"] is not None)
         s, d, _ = call(https, "mixer"); check(f"[{label}] mixer works", s == 200)

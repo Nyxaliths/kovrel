@@ -26,6 +26,7 @@ import subprocess
 import threading
 import time
 import urllib.parse
+import webbrowser
 import xml.etree.ElementTree as ET
 import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -49,7 +50,7 @@ CONFIG_DIR = security.CONFIG_DIR
 SHARED_DIR = Path(os.environ.get("KOVREL_FILES_DIR") or Path.home() / "Downloads" / "Kovrel")
 OLD_SHARED_DIR = SHARED_DIR.with_name("Vexari")  # the app's name before 2.0
 PORT = int(os.environ.get("KOVREL_PORT", 8765))
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 NO_WINDOW = 0x08000000  # CREATE_NO_WINDOW: no console flash when run from pythonw
 
 if OLD_SHARED_DIR.is_dir() and not SHARED_DIR.exists():  # keep files people already sent
@@ -441,6 +442,30 @@ def power(action):
         user32.PostMessageW(0xFFFF, 0x0112, 0xF170, 2)  # HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER
     else:
         raise ValueError(f"unknown power action: {action}")
+
+
+def session_locked():
+    """True while the PC shows the lock screen (or a Windows security prompt): the input desktop then belongs to
+    Windows itself and a normal program can't open it. Controls and the screen picture don't work meanwhile."""
+    try:
+        user32.OpenInputDesktop.restype = ctypes.c_void_p
+        user32.CloseDesktop.argtypes = [ctypes.c_void_p]
+        desk = user32.OpenInputDesktop(0, False, 0x0100)   # DESKTOP_SWITCHDESKTOP
+    except (AttributeError, OSError):
+        return False
+    if not desk:
+        return True
+    user32.CloseDesktop(desk)
+    return False
+
+
+def open_url(url):
+    """Opens a web link in the PC's default browser (links shared from the phone). Web links only."""
+    url = str(url or "").strip()[:2000]
+    if not re.match(r"https?://[^\s]+$", url, re.I):
+        raise ValueError("Only web links (http or https) can be opened.")
+    webbrowser.open(url)
+    return url
 
 
 TIMER = {"timer": None, "deadline": 0, "action": None}
@@ -1535,8 +1560,17 @@ def audio_stream(write):
 
 def connected_devices():
     """Phones that have talked to the PC in the last 15 seconds (not automation keys)."""
-    return [{"name": d["name"], "ip": d["ip"], "last_seen": d["last_seen"]}
+    return [{"id": d["id"], "name": d["name"], "ip": d["ip"], "last_seen": d["last_seen"]}
             for d in security.devices() if d["online"] and d["scope"] == "full"]
+
+
+def disconnect_device(dev_id):
+    """Signs one phone out and cuts its open connections (screen, sound). It has to be approved again to return.
+    Other phones only see a short blip: their pages reconnect by themselves."""
+    gone = security.revoke(dev_id)
+    if gone:
+        close_all_connections()
+    return gone
 
 
 # ---------------------------------------------------------------- API
@@ -1592,7 +1626,7 @@ def handle_api(cmd, body, dev=None):
     who = (dev or {}).get("name", "?")
     if cmd == "ping":
         return {"ok": True, "host": socket.gethostname(), "version": VERSION, "paused": PAUSED["on"],
-                "remote": bool((dev or {}).get("remote"))}
+                "remote": bool((dev or {}).get("remote")), "locked": session_locked()}
     if cmd == "move":
         mouse_move(body.get("dx", 0), body.get("dy", 0))
     elif cmd == "click":
@@ -1652,6 +1686,8 @@ def handle_api(cmd, body, dev=None):
         return {"ok": True, "text": clipboard_get()}
     elif cmd == "clipboard_set":
         clipboard_set(str(body.get("text", ""))[:100000])
+    elif cmd == "open_url":
+        security.audit("link_opened", url=open_url(body.get("url")), device=who)
     elif cmd == "media":
         return {"ok": True, **media_info(), "timer": timer_info()}
     elif cmd == "volume":

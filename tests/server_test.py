@@ -1,4 +1,4 @@
-﻿"""End-to-end test of the Kovrel server (HTTP + HTTPS) using a throwaway APPDATA.
+"""End-to-end test of the Kovrel server (HTTP + HTTPS) using a throwaway APPDATA.
 Sends no real keyboard/mouse/power actions."""
 import http.client, json, os, shutil, socket, ssl, struct, subprocess, sys, tempfile, threading, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +62,8 @@ T = d["token"]
 t0 = time.perf_counter()
 for _ in range(20): s, d, _ = call(c, "ping", token=T)
 check("authenticated ping, version, not paused", s == 200 and d["paused"] is False)
+check("ping says whether the PC is locked (it is not during the test)", d.get("locked") is False)
+s, d, _ = call(c, "open_url", {"url": "file:///C:/Windows/notepad.exe"}, token=T); check("open_url refuses anything but web links", s != 200 or not d.get("ok"), str(d))
 print(f"     20 pings on one connection: {(time.perf_counter()-t0)*50:.1f} ms each")
 s, d, _ = call(c, "media", token=T);        check("media (volume via COM)", s == 200 and d["volume"] is not None)
 s, d, _ = call(c, "status", token=T);       check("status", s == 200 and "ram" in d)
@@ -243,6 +245,14 @@ ic = conn(); ic.request("GET", "/apple-touch-icon.png"); im = _Img.open(_io.Byte
 check("iPhone icon is 180x180 with no transparent corners", im.size == (180, 180) and im.mode == "RGB")
 key_f = server.KEY_FILE
 check("private key file exists", key_f.exists())
+
+# ---- disconnect one phone (the Disconnect button in the PC window)
+T2 = security._issue("e2e-device-0002", "Kick me", "127.0.0.1")   # a 2nd PIN login would hit the wrong-PIN lockout above
+call(conn(), "ping", token=T2)
+kid = next((x["id"] for x in server.connected_devices() if x["name"] == "Kick me"), None)
+check("connected list carries each phone's id", bool(kid))
+check("disconnect signs that phone out", server.disconnect_device(kid) and call(conn(), "ping", token=T2)[0] == 401)
+check("other phones stay signed in", call(conn(), "ping", token=T)[0] == 200)
 
 # ---- audit log
 log = security.AUDIT_FILE.read_text()

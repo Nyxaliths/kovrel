@@ -332,7 +332,17 @@ dialog { border: 0; border-radius: 22px; background: var(--card); color: var(--f
 dialog::backdrop { background: rgba(4,6,8,.6); backdrop-filter: blur(3px); }
 dialog h3 { margin: 0; font-size: 20px; }
 dialog p { margin: 0; color: var(--muted-fg); font-size: 14px; }
-dialog form { display: flex; flex-direction: column; gap: 14px; }
+dialog form, dialog .col-form { display: flex; flex-direction: column; gap: 14px; }
+.tour-ic { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; align-self: center;
+  background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.tour-ic .icon { width: 28px; height: 28px; }
+#tourDialog h3, #tourDialog p { text-align: center; }
+#tourDialog p { font-size: 15px; line-height: 1.45; }
+.tour-dots { display: flex; gap: 6px; justify-content: center; }
+.tour-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--btn-bg); }
+.tour-dots i.on { background: var(--primary); }
+#shareText { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow: auto; background: var(--btn-bg);
+  border-radius: 12px; padding: 10px 12px; color: var(--fg); }
 .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px); z-index: 100;
   transform: translate(-50%, 10px); opacity: 0; pointer-events: none; background: var(--fg); color: var(--bg);
   padding: 11px 18px; border-radius: 14px; font-size: 15px; font-weight: 600; transition: opacity .2s, transform .2s; max-width: 90vw; }
@@ -438,6 +448,8 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
     <span class="pill" aria-live="polite"><span class="dot" id="dot"></span><span id="host">Connected</span></span>
   </header>
   <div class="banner" id="pausedBar" role="status" hidden>Remote control is paused on the PC. You can look, but not control.</div>
+  <div class="banner" id="lockedBar" role="status" hidden>The PC is locked, so its screen is hidden and it can't be controlled. Unlock it at the PC.</div>
+  <div class="banner" id="offlineBar" role="status" hidden>Can't reach the PC. It may be asleep, shut down, or off this network.</div>
 
   <main>
     <!-- ---------- Screen ---------- -->
@@ -765,6 +777,7 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
         <div class="row between"><span>New devices</span><b>Need your OK on the PC</b></div>
         <p class="muted">Trusted phones, the PIN or password, remote access and shared folders are managed in Kovrel › Settings on your PC.</p>
       </div>
+      <button class="btn" id="tourAgain"><svg class="icon"><use href="#i-star"/></svg>Take the tour again</button>
       <button class="btn danger" id="logout"><svg class="icon"><use href="#i-logout"/></svg>Sign out of this device</button>
       <p class="muted" style="text-align:center" id="verText">Kovrel</p>
       <p class="muted" style="text-align:center"><a class="support" href="https://buymeacoffee.com/nyxaliths" target="_blank" rel="noopener noreferrer">Support Kovrel · buy me a coffee</a></p>
@@ -825,6 +838,25 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
     <h3>Are you sure?</h3><p id="confirmMsg"></p>
     <div class="grid g2"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="confirmYes">Confirm</button></div>
   </form>
+</dialog>
+
+<dialog id="tourDialog" aria-labelledby="tourTitle">
+  <div class="col-form">
+    <span class="tour-ic"><svg class="icon" aria-hidden="true"><use id="tourIcon" href="#i-cast"/></svg></span>
+    <h3 id="tourTitle"></h3><p id="tourBody"></p>
+    <div class="tour-dots" id="tourDots" aria-hidden="true"></div>
+    <div class="grid g2"><button class="btn" type="button" id="tourSkip">Skip</button><button class="btn primary" type="button" id="tourNext">Next</button></div>
+  </div>
+</dialog>
+
+<dialog id="shareDialog" aria-labelledby="shareTitle">
+  <div class="col-form">
+    <h3 id="shareTitle">Send to your PC</h3>
+    <p id="shareText"></p>
+    <button class="btn primary" type="button" id="shareOpen" hidden><svg class="icon"><use href="#i-cast"/></svg>Open the link on the PC</button>
+    <button class="btn" type="button" id="shareCopy"><svg class="icon"><use href="#i-plus"/></svg>Copy to the PC's clipboard</button>
+    <button class="btn" type="button" id="shareClose">Cancel</button>
+  </div>
 </dialog>
 
 <dialog id="screenDialog">
@@ -941,7 +973,7 @@ async function api(cmd, body = {}, { quiet = false } = {}) {
     setOnline(true);
     if (r.status === 401) { signOutLocally('You were signed out. Sign in again.'); return data; }
     if (cmd === 'ping' || r.status === 423) setPaused(r.status === 423 || !!data.paused);
-    if (cmd === 'ping') checkPageVersion(data.version);
+    if (cmd === 'ping') { setLocked(!!data.locked); checkPageVersion(data.version); }
     if (!data.ok && !quiet) toast(data.error || 'Something went wrong');
     return data;
   } catch {
@@ -960,13 +992,18 @@ function checkPageVersion(serverVersion) {
   toast('Kovrel was updated. Reloading…');
   setTimeout(() => location.reload(), 900);
 }
-let online = true, hostName = 'Connected';
+let online = true, hostName = 'Connected', offlineSince = 0;
 function setOnline(on) {
   online = on;
+  offlineSince = on ? 0 : (offlineSince || Date.now());
+  if (on) $('#offlineBar').hidden = true;
   $('#dot').classList.toggle('off', !on);
   $('#host').textContent = on ? hostName : 'Reconnecting…';
 }
+// A PC that stays unreachable is usually asleep or off: say so after a quiet while instead of only "Reconnecting…".
+setInterval(() => { $('#offlineBar').hidden = online || !appOn() || !offlineSince || Date.now() - offlineSince < 15000; }, 2000);
 function setPaused(on) { $('#pausedBar').hidden = !on; }
+function setLocked(on) { $('#lockedBar').hidden = !on; }
 // Away from home (through Tailscale): say so, and start with the lighter picture unless one was picked.
 function setHost(r) {
   hostName = r.host + (r.remote ? ' · away' : '');
@@ -1041,9 +1078,72 @@ async function showApp() {
   if (res.ok) { setHost(res); setOnline(true); } else setOnline(false);
   await loadMonitors();
   route(); loadApps();
+  if (store.get('kovrel.tourPending', '') === '1') showTour(0);
+  else handleShare();
 }
+
+/* ================= first-run tour ================= */
+const TOUR = [
+  { icon: '#i-cast', title: 'Your PC, in your pocket', body: 'Screen shows your PC. Use the touchpad and the Keys, Media and Game tabs along the bottom. More has files, programs, sound and power.' },
+  { icon: '#i-lock', title: 'Private by design', body: 'Kovrel only talks to your PC, on your home Wi-Fi or your own Tailscale network. There is no account and no cloud, and nothing is sent to anyone else.' },
+  { icon: '#i-phone', title: 'You stay in control', body: 'Every new phone needs your OK on the PC. Pause on the PC stops all control at once, and Disconnect signs a phone out. Settings here has Sign out for this phone.' },
+];
+let tourStep = 0;
+function showTour(step) {
+  tourStep = step;
+  const t = TOUR[step];
+  $('#tourIcon').setAttribute('href', t.icon);
+  $('#tourTitle').textContent = t.title; $('#tourBody').textContent = t.body;
+  $('#tourDots').innerHTML = TOUR.map((_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('');
+  $('#tourNext').textContent = step === TOUR.length - 1 ? 'Got it' : 'Next';
+  $('#tourSkip').hidden = step === TOUR.length - 1;
+  $('#tourNext').parentElement.classList.toggle('g2', step < TOUR.length - 1);   // "Got it" alone spans the row
+  if (!$('#tourDialog').open) $('#tourDialog').showModal();
+}
+function endTour() {
+  store.set('kovrel.tour', '1'); store.del('kovrel.tourPending');
+  $('#tourDialog').close();
+  handleShare();
+}
+$('#tourNext').addEventListener('click', () => tourStep >= TOUR.length - 1 ? endTour() : showTour(tourStep + 1));
+$('#tourSkip').addEventListener('click', endTour);
+$('#tourDialog').addEventListener('cancel', e => { e.preventDefault(); endTour(); });
+$('#tourAgain').addEventListener('click', () => showTour(0));
+
+/* ================= Share to Kovrel (Android: installed app, "Share" menu) ================= */
+// The manifest asks the phone to list Kovrel as a share target. A share arrives as ?title=&text=&url= on the page.
+// It is held until signed in, then offered as buttons; nothing happens on the PC until one is tapped.
+(() => {
+  const p = new URLSearchParams(location.search);
+  const share = { title: (p.get('title') || '').slice(0, 300), text: (p.get('text') || '').slice(0, 5000), url: (p.get('url') || '').slice(0, 2000) };
+  if (!(share.title || share.text || share.url)) return;
+  try { sessionStorage.setItem('kovrel.share', JSON.stringify(share)); } catch {}
+  history.replaceState(null, '', location.pathname + location.hash);
+})();
+let sharing = null;
+function handleShare() {
+  let s = null;
+  try { s = JSON.parse(sessionStorage.getItem('kovrel.share') || 'null'); sessionStorage.removeItem('kovrel.share'); } catch {}
+  if (!s) return;
+  const link = (s.url && /^https?:\/\//i.test(s.url) ? s.url : (s.text.match(/https?:\/\/\S+/i) || [''])[0]);
+  const text = [s.title !== s.text ? s.title : '', s.text, s.url && !s.text.includes(s.url) ? s.url : ''].filter(Boolean).join('\n');
+  sharing = { link, text };
+  $('#shareText').textContent = text;
+  $('#shareOpen').hidden = !link;
+  $('#shareDialog').showModal();
+}
+$('#shareClose').addEventListener('click', () => $('#shareDialog').close());
+$('#shareCopy').addEventListener('click', async () => {
+  const r = await api('clipboard_set', { text: sharing.text });
+  if (r.ok) { toast('Copied to the PC\'s clipboard'); $('#shareDialog').close(); }
+});
+$('#shareOpen').addEventListener('click', async () => {
+  const r = await api('open_url', { url: sharing.link });
+  if (r.ok) { toast('Opened on the PC'); $('#shareDialog').close(); }
+});
 function signedIn(t) {
   token = t; store.set('kovrel.token', t);
+  if (store.get('kovrel.tour', '') !== '1') store.set('kovrel.tourPending', '1');   // a newly approved phone gets the tour once
   $('#loginWait').hidden = true; $('#loginForm').hidden = false; $('#pinInput').value = '';
   showApp();
 }

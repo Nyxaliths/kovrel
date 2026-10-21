@@ -162,10 +162,11 @@ class App:
         inner.pack(fill="x", **pack)
         return inner
 
-    def button(self, parent, text, cmd, primary=False, danger=False):
+    def button(self, parent, text, cmd, primary=False, danger=False, small=False):
         bg, hover = (PRIMARY, PRIMARY_HOVER) if primary else (CARD2, BORDER)
         b = tk.Label(parent, text=text, bg=bg, fg=RED if danger else ON_PRIMARY if primary else FG,
-                     font=(FONT, 10, "bold"), padx=16, pady=10, cursor="hand2")
+                     font=(FONT, 9 if small else 10, "bold"), padx=10 if small else 16, pady=4 if small else 10,
+                     cursor="hand2")
         b.bind("<Button-1>", lambda e: cmd())
         b.bind("<Enter>", lambda e: b.configure(bg=hover))
         b.bind("<Leave>", lambda e: b.configure(bg=bg))
@@ -240,6 +241,9 @@ class App:
         tk.Label(c, text="Connected", bg=CARD, fg=MUTED, font=(FONT, 9)).pack(anchor="w")
         self.devices = tk.Label(c, bg=CARD, fg=FG, font=(FONT, 10), justify="left", anchor="w")
         self.devices.pack(fill="x")
+        self.dev_box = tk.Frame(c, bg=CARD)   # one row per connected phone, each with a Disconnect button
+        self.dev_box.pack(fill="x")
+        self.dev_key = None
 
         row = tk.Frame(pad, bg=BG)
         row.pack(fill="x", pady=(14, 0))
@@ -363,10 +367,16 @@ class App:
         if self.error:
             self.status.configure(text="● Not running", fg=RED)
             self.devices.configure(text=self.error, fg=RED, wraplength=360)
+            self.draw_devices([])
         else:
             self.status.configure(text="● Running", fg=GREEN)
             devs = server.connected_devices()
-            self.devices.configure(fg=FG, text="\n".join(f"•  {d['name']}" for d in devs) or "No devices connected right now")
+            self.devices.configure(fg=FG, text="No devices connected right now")
+            if devs:
+                self.devices.pack_forget()
+            elif not self.devices.winfo_ismapped():
+                self.devices.pack(fill="x", before=self.dev_box)
+            self.draw_devices(devs)
         if self.update and not self.update_bar.winfo_ismapped():
             self.update_lbl.configure(text=f"Kovrel {self.update[0]} is available")
             self.update_bar.pack(fill="x", pady=(10, 0), after=self.head)
@@ -380,6 +390,26 @@ class App:
             self.pause_btn.configure(text="Pause")
         self.fit_height()
         self.root.after(1500, self.refresh)
+
+    def draw_devices(self, devs):
+        """The 'Connected' list. Rebuilt only when the set of phones changes, so a click is never lost to a redraw."""
+        key = tuple((d["id"], d["name"]) for d in devs)
+        if key == self.dev_key:
+            return
+        self.dev_key = key
+        for w in self.dev_box.winfo_children():
+            w.destroy()
+        for d in devs:
+            row = tk.Frame(self.dev_box, bg=CARD)
+            row.pack(fill="x", pady=(4, 0))
+            tk.Label(row, text=f"•  {d['name']}", bg=CARD, fg=FG, font=(FONT, 10), anchor="w").pack(side="left")
+            self.button(row, "Disconnect", lambda i=d["id"], n=d["name"]: self.disconnect(i, n), small=True).pack(side="right")
+
+    def disconnect(self, dev_id, name):
+        if messagebox.askyesno("Disconnect", f"Sign out {name}? It has to be approved again before it can reconnect.",
+                               parent=self.root):
+            server.disconnect_device(dev_id)
+            self.dev_key = None
 
     def fit_height(self):
         """The window is a fixed width but grows or shrinks to show everything (the Away switch, the Tailscale
@@ -527,7 +557,7 @@ class App:
         def remove():
             sel = tree.selection()
             if sel and messagebox.askyesno("Remove device", "This device will have to be approved again before it can connect.", parent=win):
-                security.revoke(sel[0])
+                server.disconnect_device(sel[0])
                 fill()
 
         def sign_out_all():

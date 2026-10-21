@@ -31,6 +31,11 @@ Everything stays between your phone and your PC.
 - **Media**: play/pause, next, volume, what's playing, sleep timer, the PC's sound on your phone
 - **More**: per-app volume, monitor brightness, open windows and apps, running programs, files both ways,
   your own buttons and macros, PC status, notifications, lock/sleep/shut down, wake another PC
+- **Share to Kovrel**: on Android, share a link or text from any app to Kovrel, then open it on the PC or
+  copy it to the PC's clipboard
+- **Knows when it can't help**: the phone says when the PC is locked, or when it can't be reached because
+  it is asleep, off or on another network
+- **A short tour** on a newly approved phone: what Kovrel does, what stays private, and how to stop it
 - **Remote access (optional)**: use it away from home through [Tailscale](https://tailscale.com), without
   opening anything to the internet
 
@@ -81,6 +86,7 @@ purpose, so it won't work that way.
   in **Settings › Devices**.
 - Wrong PINs lock that address out for longer each time. Many wrong attempts pause all logins.
 - **Pause** (main window or tray menu) stops all control instantly; phones can still look.
+- **Disconnect** next to a phone in the main window signs it out and cuts its connection right away.
 - An optional secure connection (HTTPS) encrypts traffic on your home network. Over Tailscale,
   traffic is always encrypted.
 - Phones can only open the folders you share; everything else on the PC stays off-limits.
@@ -95,6 +101,9 @@ for what is stored where.
   (`SendInput`). Games with kernel-level anti-cheat (for example Valorant) may block or flag that input.
   Don't use it where the game's rules forbid input tools.
 - **The PC must be on and awake.** When the PC sleeps, Kovrel sleeps with it.
+- **Share to Kovrel is Android only**, and only once Kovrel is added to the home screen as an app over a
+  trusted secure address (Tailscale's certificate). iPhones don't let web apps receive shares. Files can't
+  be shared this way yet: links and text only.
 - **Smooth H.264 video needs a secure page.** Phone browsers only allow it over HTTPS (Settings › Access,
   or Tailscale's certificate), and only if your Windows has its built-in H.264 encoder (some "N" and Server
   editions don't). Otherwise the screen is sent as JPEG pictures: very compatible, but several times more

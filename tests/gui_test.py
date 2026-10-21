@@ -133,7 +133,9 @@ def scenario():
     # --- main window shows the connected phone
     hreq("http", "POST", "/api/ping", {}, token)
     time.sleep(1.8)
-    check("connected list shows the phone", "Jo's iPhone" in app.devices.cget("text"), app.devices.cget("text"))
+    rows = [[w.cget("text") for w in row.winfo_children()] for row in app.dev_box.winfo_children()]
+    check("connected list shows the phone with a Disconnect button",
+          any("Jo's iPhone" in r[0] and "Disconnect" in r for r in rows), str(rows))
     on_tk(lambda: shot(app.root, "3_main_connected.png"))
     # --- security window: every tab
     on_tk(lambda: app.open_security(0)); time.sleep(0.8)

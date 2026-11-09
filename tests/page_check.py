@@ -27,8 +27,18 @@ dupes = sorted({i for i in re.findall(r'id="([^"]+)"', html) if re.findall(rf'id
 check("no duplicate ids", not dupes, ", ".join(dupes))
 remote = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
 check("nothing is loaded from the internet (links people tap are fine)", all("github.com" in u or u.startswith(("https://buymeacoffee.com/nyxaliths", "https://instagram.com/kovrelapp")) for u in remote), ", ".join(remote))
+css = re.search(r"<style>(.*?)</style>", html, re.S).group(1)
+broken = [f for f in re.findall(r"font:[^;}]*\binherit\b[^;}]*", css) if f.split(":", 1)[1].strip() != "inherit"]
+check("no font shorthand with 'inherit' in it (browsers drop the whole rule)", not broken, "; ".join(broken))
+symbols = set(re.findall(r'<symbol id="([^"]+)"', html))
+icons = set(re.findall(r'href="#([a-z][\w-]*)"', html)) | set(re.findall(r"'#(i-[\w-]+|ps-[\w-]+|d-[\w-]+)'", script)) \
+    | {"i-" + v for v in re.findall(r"(?:star|globe|play|music|game|keyboard|monitor|folder|rocket): 'i-([\w-]+)'", script)}
+icons -= {t for t in icons if t in ("screen", "game", "keys", "media", "more")}     # the tab links, not icons
+check("every icon the page draws is defined", icons <= symbols, ", ".join(sorted(icons - symbols)))
+check("values from the PC are escaped on the status page", "${esc(sub)}" in script and "${sub}" not in script)
+check("a failed upload can't end with 'File sent'", "toast(files.length > 1 ? 'Files sent' : 'File sent')" not in script)
 import json
-man = json.load(open(os.path.join(ROOT, "web", "manifest.json"), encoding="utf-8"))
+man =json.load(open(os.path.join(ROOT, "web", "manifest.json"), encoding="utf-8"))
 check("manifest lists Kovrel as a share target (GET, so nothing is posted without a tap)", man.get("share_target", {}).get("method") == "GET" and man["share_target"]["action"] == "/")
 print("\nRESULT:", f"{len(bad)} FAILED: {bad}" if bad else "all passed")
 sys.exit(1 if bad else 0)

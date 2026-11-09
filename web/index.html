@@ -89,7 +89,7 @@ section .card, section .seg { --btn-bg: var(--card-2); }
 .btn[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
 .btn.icon-only { width: 52px; padding: 0; flex: none; }
 .btn:disabled { opacity: .45; cursor: default; }
-kbd { font: 600 12px/1 inherit; font-family: inherit; color: var(--muted-fg); }
+kbd { font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1; color: var(--muted-fg); }
 .btn[aria-pressed="true"] kbd, .btn.primary kbd { color: inherit; opacity: .75; }
 .row { display: flex; align-items: center; gap: 10px; }
 .row > input, .row > select, .row > .grow { flex: 1; min-width: 0; }
@@ -131,6 +131,8 @@ textarea { min-height: 96px; resize: vertical; }
 .stage { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
 .viewer { position: relative; background: #000; border-radius: var(--radius);
   overflow: auto; flex: 1 1 55%; min-height: 120px; touch-action: pan-x pan-y; overscroll-behavior: contain; }
+/* While a mouse button is held, a finger on the picture drags the cursor instead of scrolling the zoomed view. */
+.viewer.drag { touch-action: none; }
 /* The picture always fits the box (wide or portrait monitors alike); zoom makes it bigger inside the box,
    so the controls below never move. */
 .viewer img, .viewer canvas { display: block; width: calc(var(--zoom, 1) * 100%); height: calc(var(--zoom, 1) * 100%); object-fit: contain; user-select: none;
@@ -209,7 +211,7 @@ a.support:active { color: var(--primary); }
 .notif b { white-space: normal; }
 .notif p { margin: 2px 0 0; font-size: 14px; color: var(--muted-fg); overflow-wrap: anywhere; }
 .tiles { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.tile { all: unset; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 14px; min-height: 64px;
+.tile { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px; min-height: 64px; min-width: 0;
   border-radius: var(--radius); background: var(--card); transition: transform .1s, background .2s; }
 .tile:hover { background: color-mix(in srgb, var(--primary) 8%, var(--card)); }
 .tile:active { transform: scale(.97); }
@@ -217,7 +219,8 @@ a.support:active { color: var(--primary); }
 .tile:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 .tile .ic { width: 40px; height: 40px; border-radius: 12px; flex: none; display: grid; place-items: center;
   background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
-.tile b { font-size: 15px; font-weight: 600; line-height: 1.2; }
+.tile b { font-size: 15px; font-weight: 600; line-height: 1.2; min-width: 0; overflow-wrap: break-word; }
+@media (max-width: 400px) { .tile b { font-size: 14px; } .tile .ic { width: 36px; height: 36px; } }
 .tile small { display: none; }
 .meter { display: flex; flex-direction: column; gap: 8px; }
 .meter .top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
@@ -581,7 +584,7 @@ dialog form, dialog .col-form { display: flex; flex-direction: column; gap: 14px
       <div class="grid g4">
         <button class="btn" data-key="esc">Esc</button>
         <button class="btn" data-key="tab">Tab</button>
-        <button class="btn" data-key="backspace">⌫</button>
+        <button class="btn" data-key="backspace" aria-label="Backspace">⌫</button>
         <button class="btn" data-key="enter">Enter</button>
         <button class="btn" data-key="delete">Del</button>
         <button class="btn" data-key="space">Space</button>
@@ -854,7 +857,7 @@ dialog form, dialog .col-form { display: flex; flex-direction: column; gap: 14px
     <h3 id="shareTitle">Send to your PC</h3>
     <p id="shareText"></p>
     <button class="btn primary" type="button" id="shareOpen" hidden><svg class="icon"><use href="#i-cast"/></svg>Open the link on the PC</button>
-    <button class="btn" type="button" id="shareCopy"><svg class="icon"><use href="#i-plus"/></svg>Copy to the PC's clipboard</button>
+    <button class="btn" type="button" id="shareCopy"><svg class="icon"><use href="#i-copy"/></svg>Copy to the PC's clipboard</button>
     <button class="btn" type="button" id="shareClose">Cancel</button>
   </div>
 </dialog>
@@ -958,6 +961,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const hdrs = (extra = {}) => ({ 'Content-Type': 'application/json', 'X-Token': token, ...extra });
 const buzz = (ms = 8) => navigator.vibrate?.(ms);
 const visible = () => document.visibilityState === 'visible';
+const capture = (el, id) => { try { el.setPointerCapture(id); } catch {} };
 const appOn = () => $('#app').classList.contains('on');
 
 /* ================= API ================= */
@@ -978,7 +982,7 @@ async function api(cmd, body = {}, { quiet = false } = {}) {
     return data;
   } catch {
     if (online && !quiet) toast('Lost connection to the PC. Reconnecting…');
-    setOnline(false);
+    lost = true; setOnline(false);
     return { ok: false };
   }
 }
@@ -992,7 +996,7 @@ function checkPageVersion(serverVersion) {
   toast('Kovrel was updated. Reloading…');
   setTimeout(() => location.reload(), 900);
 }
-let online = true, hostName = 'Connected', offlineSince = 0;
+let online = true, hostName = 'Connected', offlineSince = 0, lost = false;   // lost: a request really failed
 function setOnline(on) {
   online = on;
   offlineSince = on ? 0 : (offlineSince || Date.now());
@@ -1014,7 +1018,7 @@ function setHost(r) {
 async function reconnect() {
   if (online || !token || !visible()) return;
   const r = await api('ping', {}, { quiet: true });
-  if (r.ok) { setHost(r); setOnline(true); toast('Reconnected'); startStream(); }
+  if (r.ok) { setHost(r); setOnline(true); if (lost) toast('Reconnected'); lost = false; startStream(); }
 }
 setInterval(reconnect, 3000);
 // Quiet check-in so the PC's "Connected" list (and the paused banner) stay current even when idle.
@@ -1063,7 +1067,7 @@ async function loadInfo() {
   } catch {}
 }
 function showLogin(msg = '') {
-  stopAudio(); closeGame(); clearInterval(waitTimer);
+  stopAudio(); closeGame(); clearInterval(waitTimer); waitTimer = null;
   $('#app').classList.remove('on'); $('#login').classList.add('on');
   $('#loginForm').hidden = false; $('#loginWait').hidden = true;
   $('#loginErr').textContent = msg; $('#pinInput').value = ''; $('#devName').value = devName; $('#pinInput').focus();
@@ -1099,6 +1103,7 @@ function showTour(step) {
   $('#tourSkip').hidden = step === TOUR.length - 1;
   $('#tourNext').parentElement.classList.toggle('g2', step < TOUR.length - 1);   // "Got it" alone spans the row
   if (!$('#tourDialog').open) $('#tourDialog').showModal();
+  $('#tourNext').focus();
 }
 function endTour() {
   store.set('kovrel.tour', '1'); store.del('kovrel.tourPending');
@@ -1152,21 +1157,25 @@ function waitForApproval(req) {
   $('#loginForm').hidden = true; $('#loginWait').hidden = false; $('#waitName').textContent = devName;
   const started = Date.now();
   clearInterval(waitTimer);
-  const stop = msg => { clearInterval(waitTimer); $('#loginWait').hidden = true; $('#loginForm').hidden = false; $('#loginErr').textContent = msg; $('#pinInput').value = ''; };
-  waitTimer = setInterval(async () => {
+  const stop = msg => { clearInterval(waitTimer); waitTimer = null; $('#loginWait').hidden = true; $('#loginForm').hidden = false; $('#loginErr').textContent = msg; $('#pinInput').value = ''; };
+  let asking = false;
+  const mine = waitTimer = setInterval(async () => {
     const left = Math.max(0, 90 - Math.round((Date.now() - started) / 1000));
     $('#waitLeft').textContent = `Waiting… ${left}s`;
+    if (asking) return;                             // the last check is still on its way
+    asking = true;
     try {
       const r = await fetchT('/api/login_status', { method: 'POST', headers: JSON_HDR, body: JSON.stringify({ req, device: devId }) }, 5000);
       const d = await r.json();
-      if (d.status === 'ok') { clearInterval(waitTimer); return signedIn(d.token); }
+      if (mine !== waitTimer) return;               // cancelled or restarted meanwhile
+      if (d.status === 'ok') { clearInterval(waitTimer); waitTimer = null; return signedIn(d.token); }
       if (d.status === 'denied') return stop('The PC said no. If that wasn\'t you, someone has your PIN: change it in the Kovrel window.');
       if (d.status === 'expired') return stop('That request timed out. Try again.');
-    } catch {}
-    if (left <= 0) stop('That request timed out. Try again.');
+    } catch {} finally { asking = false; }
+    if (left <= 0 && mine === waitTimer) stop('That request timed out. Try again.');
   }, 1500);
 }
-$('#waitCancel').addEventListener('click', () => { clearInterval(waitTimer); $('#loginWait').hidden = true; $('#loginForm').hidden = false; });
+$('#waitCancel').addEventListener('click', () => { clearInterval(waitTimer); waitTimer = null; $('#loginWait').hidden = true; $('#loginForm').hidden = false; });
 $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   const raw = $('#pinInput').value, secret = loginKind === 'pin' ? raw.trim() : raw;
@@ -1283,6 +1292,7 @@ function drawHeld() {
     b.setAttribute('aria-pressed', on);
     b.textContent = BTN_NAME[b.dataset.click] + (on ? ' · held' : '');
   });
+  $('#viewer').classList.toggle('drag', Object.values(heldBtn).some(Boolean));
 }
 function setHeld(btn, on) {
   if (heldBtn[btn] === on) return;
@@ -1401,7 +1411,7 @@ function showTimer(t) {
   $('#timerActive').hidden = !t?.active;
   if (t?.active) {
     const m = Math.ceil(t.seconds_left / 60);
-    $('#timerText').textContent = `${ACTION_NAMES[t.action]} in ${m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'}`;
+    $('#timerText').textContent = `${ACTION_NAMES[t.action]} in ${m >= 60 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : m + ' min'}`;
   }
 }
 $$('[data-timer]').forEach(b => b.addEventListener('click', async () => {
@@ -1540,23 +1550,34 @@ $('#fileList').addEventListener('click', async e => {
 });
 $('#fileInput').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = '';
+  let sent = 0, failed = '', signedOut = false;
   for (const [i, f] of files.entries()) {
-    $('#upProg').hidden = false;
+    $('#upProg').hidden = false; $('#upProg i').style.width = '0';
     $('#upText').textContent = `Sending ${f.name} (${i + 1} of ${files.length})…`;
-    const ok = await new Promise(res => {
+    const problem = await new Promise(res => {      // '' when the file arrived, otherwise what went wrong
       const x = new XMLHttpRequest();
       x.open('POST', '/api/upload');
       Object.entries(hdrs({ 'Content-Type': 'application/octet-stream', 'X-Filename': encodeURIComponent(f.name),
         'X-Root': String(fileNav.root), 'X-Dir': encodeURIComponent(fileNav.path) })).forEach(([k, v]) => x.setRequestHeader(k, v));
       x.upload.onprogress = ev => { if (ev.lengthComputable) $('#upProg i').style.width = (ev.loaded / ev.total * 100) + '%'; };
-      x.onload = () => res(x.status === 200); x.onerror = () => res(false);
+      x.onload = () => {
+        if (x.status === 200) return res('');
+        let why = ''; try { why = JSON.parse(x.responseText).error || ''; } catch {}
+        if (x.status === 401) signedOut = true;
+        res(why || 'Couldn\'t send ' + f.name);
+      };
+      x.onerror = () => res('Lost connection while sending ' + f.name);
       x.send(f);
     });
-    if (!ok) { toast('Couldn\'t send ' + f.name); break; }
+    if (problem) { failed = problem; break; }
+    sent++;
   }
   $('#upProg').hidden = true; $('#upProg i').style.width = '0';
   $('#upText').textContent = 'Files go into the folder open below.';
-  toast(files.length > 1 ? 'Files sent' : 'File sent'); buzz(); loadFiles();
+  if (signedOut) return signOutLocally('You were signed out. Sign in again.');
+  if (failed) toast(sent ? `${failed} (${sent} of ${files.length} sent)` : failed);
+  else if (sent) { toast(sent > 1 ? `${sent} files sent` : 'File sent'); buzz(); }
+  loadFiles();
 });
 
 /* ================= programs (task manager) ================= */
@@ -1643,8 +1664,8 @@ $('#wakeSave').addEventListener('click', async e => {
 const fmtUp = s => s < 3600 ? Math.floor(s / 60) + ' min' : s < 86400 ? Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' m' : Math.floor(s / 86400) + ' d ' + Math.floor(s % 86400 / 3600) + ' h';
 function meter(label, value, unit, pct, sub, hot = 75, crit = 90) {
   const cls = pct >= crit ? 'crit' : pct >= hot ? 'hot' : '';
-  return `<div class="card meter"><div class="top"><span>${label}</span><b>${value}${unit}</b></div>
-    <div class="bar"><i class="${cls}" style="width:${Math.min(100, pct)}%"></i></div><span class="muted">${sub}</span></div>`;
+  return `<div class="card meter"><div class="top"><span>${esc(label)}</span><b>${esc(value)}${unit}</b></div>
+    <div class="bar"><i class="${cls}" style="width:${Math.max(0, Math.min(100, +pct || 0))}%"></i></div><span class="muted">${esc(sub)}</span></div>`;
 }
 async function loadStatus() {
   const r = await api('status', {}, { quiet: true }); if (!r.ok) return;
@@ -1665,7 +1686,7 @@ async function loadNotifs() {
 }
 async function loadDevices() {
   const r = await api('devices', {}, { quiet: true }); if (!r.ok) return;
-  $('#devList').innerHTML = r.devices.map(d => `<div class="row" style="min-height:36px"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>${esc(d.name)}${d.name === devName ? ' <span class="muted">(this one)</span>' : ''}</div>`).join('') || '<span class="muted">–</span>';
+  $('#devList').innerHTML = r.devices.map(d => `<div class="row" style="min-height:36px"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>${esc(d.name)}${d.id === devId ? ' <span class="muted">(this one)</span>' : ''}</div>`).join('') || '<span class="muted">–</span>';
 }
 
 /* ================= PC sound ================= */
@@ -1846,14 +1867,14 @@ async function startStream() {
       const network = e instanceof TypeError || e.name === 'AbortError';
       msgEl.hidden = false;
       msgEl.textContent = network ? 'Reconnecting to your PC…' : e.message;
-      if (network) setOnline(false);
+      if (network) { lost = true; setOnline(false); }
     }
     if (gen === scr.gen) await sleep(1000);   // dropped: try again shortly
   }
   if (gen === scr.gen) scr.running = false;
 }
 setInterval(() => {
-  $('#fps').textContent = $('#gameFps').textContent = scr.running ? `${scr.frames} fps` : 'Paused';
+  $('#fps').textContent = $('#gameFps').textContent = scr.running ? `${scr.frames} fps` : scr.paused ? 'Paused' : '–';
   scr.frames = 0;
   if (scr.running && !streamWanted()) stopStream();   // left the Screen tab / minimised: stop using data
   startStream();                                       // watchdog: restart a stalled stream
@@ -1947,9 +1968,11 @@ let touch = null;
 for (const surface of [screenImg, screenCv]) {     // the picture is an <img> (JPEG) or a <canvas> (H.264): same touches
   surface.addEventListener('pointerdown', e => {
     const p = screenPoint(e); if (!p) return;
+    // A mouse button is being held (double-tap Left/Right): the finger now drags the cursor across the picture.
+    // The button stays down until its own button is tapped again, so a touch here must not click (and let go).
     const dragging = viewer.classList.contains('drag');
     touch = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, long: false, dragging, last: 0 };
-    if (dragging) { surface.setPointerCapture(e.pointerId); api('tap', { ...p, monitor: scr.monitor, action: 'down' }); return; }
+    if (dragging) { capture(surface, e.pointerId); api('tap', { ...p, monitor: scr.monitor, action: 'move' }, { quiet: true }); return; }
     if (e.button === 2) return;
     touch.timer = setTimeout(() => { touch.long = true; tapDot(e, true); buzz(); api('tap', { ...p, monitor: scr.monitor, button: 'right', mods: useMods() }); }, 550);
   });
@@ -1965,11 +1988,11 @@ for (const surface of [screenImg, screenCv]) {     // the picture is an <img> (J
     if (!touch || touch.id !== e.pointerId) return;
     clearTimeout(touch.timer);
     const p = screenPoint(e);
-    if (touch.dragging) { if (p) api('tap', { ...p, monitor: scr.monitor, action: 'up' }); else api('click', { button: 'left', action: 'up' }); }
+    if (touch.dragging) { if (p) api('tap', { ...p, monitor: scr.monitor, action: 'move' }, { quiet: true }); }
     else if (!touch.moved && !touch.long && p) { tapDot(e, false); buzz(); api('tap', { ...p, monitor: scr.monitor, mods: useMods() }); }
     touch = null;
   });
-  surface.addEventListener('pointercancel', () => { if (touch?.dragging) api('click', { button: 'left', action: 'up' }); clearTimeout(touch?.timer); touch = null; });
+  surface.addEventListener('pointercancel', () => { clearTimeout(touch?.timer); touch = null; });
   surface.addEventListener('contextmenu', e => {
     e.preventDefault();
     if (e.pointerType === 'touch' || touch?.long) return;
@@ -2149,7 +2172,6 @@ function recomputeHeld() {
   game.held = held; game.padButtons = pad;
   gameFlush(); // send presses right away instead of waiting for the next tick
 }
-const capture = (el, id) => { try { el.setPointerCapture(id); } catch {} };
 // Runs ~60 times a second while playing: turns the right stick into mouse movement.
 function gameTick() {
   if (!game.open) return;

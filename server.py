@@ -50,7 +50,7 @@ CONFIG_DIR = security.CONFIG_DIR
 SHARED_DIR = Path(os.environ.get("KOVREL_FILES_DIR") or Path.home() / "Downloads" / "Kovrel")
 OLD_SHARED_DIR = SHARED_DIR.with_name("Vexari")  # the app's name before 2.0
 PORT = int(os.environ.get("KOVREL_PORT", 8765))
-VERSION = "2.2.0"
+VERSION = "2.2.1"
 NO_WINDOW = 0x08000000  # CREATE_NO_WINDOW: no console flash when run from pythonw
 
 if OLD_SHARED_DIR.is_dir() and not SHARED_DIR.exists():  # keep files people already sent
@@ -188,7 +188,7 @@ def mouse_scroll(dy=0, dx=0):
 
 def type_text(text):
     events = []
-    for ch in text:
+    for ch in text.replace("\r\n", "\n").replace("\r", "\n"):   # pasted Windows text: one Enter per line, not two
         if ch == "\n":
             events += [_key(0x0D), _key(0x0D, flags=KEYEVENTF_KEYUP)]
             continue
@@ -1084,16 +1084,22 @@ def _brightness_set(mon_id, level):
                         f"-MethodName WmiSetBrightness -Arguments @{{Timeout=1; Brightness={level}}}"],
                        capture_output=True, timeout=8, creationflags=NO_WINDOW, check=True)
         return
-    want, i = int(str(mon_id).split(":")[1]), 0
+    m = re.fullmatch(r"ddc:(\d+)", str(mon_id))
+    if not m:
+        raise ValueError("That screen isn't in the list any more.")
+    want, i, refused = int(m.group(1)), 0, False
     for arr in _physical_monitors():
         for pm in arr:
             if i == want:
                 lo, cur, hi = wt.DWORD(), wt.DWORD(), wt.DWORD()
-                if not dxva2.GetMonitorBrightness(pm.handle, ctypes.byref(lo), ctypes.byref(cur), ctypes.byref(hi)):
-                    raise ValueError("This monitor doesn't allow brightness control.")
-                dxva2.SetMonitorBrightness(pm.handle, lo.value + round(level * (hi.value - lo.value) / 100))
+                if dxva2.GetMonitorBrightness(pm.handle, ctypes.byref(lo), ctypes.byref(cur), ctypes.byref(hi)):
+                    dxva2.SetMonitorBrightness(pm.handle, lo.value + round(level * (hi.value - lo.value) / 100))
+                else:
+                    refused = True
             i += 1
-        dxva2.DestroyPhysicalMonitors(len(arr), arr)
+        dxva2.DestroyPhysicalMonitors(len(arr), arr)   # always handed back, also when the monitor said no
+    if refused:
+        raise ValueError("This monitor doesn't allow brightness control.")
 
 
 def _on_display(fn, *args):
@@ -1241,7 +1247,7 @@ MAC_RE = re.compile(r"[0-9A-Fa-f]{2}([:-]?[0-9A-Fa-f]{2}){5}")
 def wake_add(name, mac):
     if not MAC_RE.fullmatch(str(mac).strip()):
         raise ValueError("That isn't a MAC address. It looks like AA:BB:CC:DD:EE:FF.")
-    raw = re.sub(r"[^0-9A-Fa-f]", "", mac).upper()
+    raw = re.sub(r"[^0-9A-Fa-f]", "", str(mac)).upper()
     with config_lock:
         CONFIG["wake_targets"].append({"id": secrets.token_hex(4), "name": str(name or "PC").strip()[:40] or "PC",
                                        "mac": ":".join(raw[i:i + 2] for i in range(0, 12, 2))})
@@ -1995,6 +2001,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, handle_api(cmd, body, {**dev, "remote": self.remote}))
         except (ConnectionError, TimeoutError):
             raise
+        except KeyError as e:   # a request that left something out: say what, not just its quoted name
+            self._reject(400, f"That request is missing {e}.")
         except Exception as e:
             self._reject(400, str(e))  # e.g. a failed upload may leave its body unread
 

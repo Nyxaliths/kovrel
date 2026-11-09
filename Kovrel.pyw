@@ -90,6 +90,7 @@ class App:
         self.ts = {"installed": False, "running": False, "ip": "", "name": "", "cert_domains": [], "error": "",
                    "checking": True}   # until the first look at Tailscale finishes (don't offer an install yet)
         self.update = None       # (version, page) when a newer Kovrel is out
+        self.update_wake = threading.Event()   # set to check for an update right away
         self.start_server()
 
         self.root = tk.Tk()
@@ -636,8 +637,10 @@ class App:
         self.button(row, "Set a password…", lambda: self.set_password(win)).pack(side="left", padx=8)
 
         section("Stay signed in", "A phone that hasn't connected for this long has to be approved again.")
-        days = tk.StringVar(value=f"{security.get('session_days', 30)} days")
-        box = ttk.Combobox(f, textvariable=days, state="readonly", values=[f"{d} day" + ("s" if d > 1 else "") for d in security.SESSION_CHOICES], width=12)
+        def day_text(d):
+            return f"{d} day" + ("s" if d > 1 else "")
+        days = tk.StringVar(value=day_text(security.get("session_days", 30)))
+        box = ttk.Combobox(f, textvariable=days, state="readonly", values=[day_text(d) for d in security.SESSION_CHOICES], width=12)
         box.pack(anchor="w", pady=(6, 0))
         box.bind("<<ComboboxSelected>>", lambda e: security.set_session_days(int(days.get().split()[0])))
 
@@ -648,6 +651,8 @@ class App:
             security.put("update_check", upd.get())
             if not upd.get():
                 self.update = None
+            else:
+                self.update_wake.set()   # look now instead of at the next daily check
         self.check(f, "Tell me when a new version is out (asks GitHub once a day; nothing about you is sent)",
                    upd, toggle_updates).pack(anchor="w", pady=(4, 0))
 
@@ -912,7 +917,8 @@ class App:
                         pass
             else:
                 self.update = None
-            time.sleep(24 * 3600)
+            self.update_wake.wait(24 * 3600)
+            self.update_wake.clear()
 
     def renew_tailscale_cert(self):
         """Tailscale certificates last 90 days. Renew one in use when it has under 20 days left."""

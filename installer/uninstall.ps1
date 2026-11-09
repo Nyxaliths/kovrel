@@ -1,6 +1,12 @@
 # Kovrel uninstaller. Windows runs this from Settings > Apps > Kovrel > Uninstall.
 # Removes only what the installer added; files people sent (Downloads\Kovrel) are kept.
-param([switch]$Quiet)
+#
+# Test flags (the counterparts of the installer's --shortcut-dir and --no-register), so a test that
+# installs into a scratch folder never touches the real shortcuts, Windows entry or running app:
+#   -ShortcutDir <folder>   remove the shortcuts from <folder>\Desktop, \Programs and \Startup instead
+#   -NoRegister             leave the Settings > Apps entry alone
+#   -KeepRunning            don't close a running Kovrel
+param([switch]$Quiet, [string]$ShortcutDir, [switch]$NoRegister, [switch]$KeepRunning)
 $ErrorActionPreference = 'SilentlyContinue'
 Add-Type -AssemblyName System.Windows.Forms
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -12,13 +18,18 @@ if (-not $Quiet) {
     if ($answer -ne 'Yes') { exit }
 }
 
-Stop-Process -Name Kovrel -Force
-Start-Sleep -Milliseconds 800
+if (-not $KeepRunning) {
+    Stop-Process -Name Kovrel -Force
+    Start-Sleep -Milliseconds 800
+}
 
 foreach ($folder in 'Desktop', 'Programs', 'Startup') {
-    Remove-Item (Join-Path ([Environment]::GetFolderPath($folder)) 'Kovrel.lnk') -Force
+    $where = if ($ShortcutDir) { Join-Path $ShortcutDir $folder } else { [Environment]::GetFolderPath($folder) }
+    Remove-Item (Join-Path $where 'Kovrel.lnk') -Force
 }
-Remove-Item 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Kovrel' -Recurse -Force
+if (-not $NoRegister) {
+    Remove-Item 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Kovrel' -Recurse -Force
+}
 Remove-Item (Join-Path $env:APPDATA 'Kovrel') -Recurse -Force   # settings, PIN, trusted phones, certificate, activity log
 
 Set-Location $env:TEMP

@@ -25,6 +25,9 @@ Fixes and polish from a full read-through of the code. No new settings.
 - Under the hood: text from the PC is always escaped before it is shown on the status page, two
   sign-in checks can no longer overlap while a phone waits for approval, and a monitor that refuses
   a brightness change no longer leaks a handle.
+- For people building Kovrel: the installed-app test (`tests\exe_test.py`) used to run the uninstaller
+  against the real Desktop, Start menu and Startup shortcuts and the Settings › Apps entry. The
+  uninstaller now takes `-ShortcutDir`, `-NoRegister` and `-KeepRunning`, and the test uses them.
 
 ## 2.2.0
 

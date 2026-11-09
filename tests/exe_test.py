@@ -55,7 +55,7 @@ for https in (False, True):
     label = "HTTPS" if https else "HTTP"
     p = launch(https)
     try:
-        s, d, r = call(https, "ping"); check(f"[{label}] installed exe answers, v{d.get('version')}", s == 200 and d["version"] == "2.2.0")
+        s, d, r = call(https, "ping"); check(f"[{label}] installed exe answers, v{d.get('version')}", s == 200 and d["version"] == "2.2.1")
         s, d, _ = call(https, "info", tok=""); check(f"[{label}] info reports the mode", d["https"] is https)
         s, d, _ = call(https, "media"); check(f"[{label}] volume works from the exe (COM bundled)", s == 200 and d["volume"] is not None)
         s, d, _ = call(https, "mixer"); check(f"[{label}] mixer works", s == 200)
@@ -111,8 +111,18 @@ check("exe log has no crash", "Traceback" not in (APPDATA / "Kovrel" / "log.txt"
 
 # ---- uninstall (scripted, quiet) must only remove its own things
 dummy_note = INSTALL / "keep-me.txt"; dummy_note.write_text("not part of Kovrel")
-r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(INSTALL / "uninstall.ps1"), "-Quiet"], capture_output=True, timeout=60)
+# It is pointed at the scratch shortcuts and told to leave the Windows entry alone, like the install above:
+# without that it would delete the REAL Desktop/Start menu/Startup shortcuts and the Settings > Apps entry.
+def real_things():
+    ps = ("foreach ($f in 'Desktop','Programs','Startup') { Test-Path (Join-Path ([Environment]::GetFolderPath($f)) 'Kovrel.lnk') }; "
+          r"Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Kovrel'")
+    return subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=60).stdout.split()
+before = real_things()
+r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(INSTALL / "uninstall.ps1"), "-Quiet",
+                    "-ShortcutDir", str(LINKS), "-NoRegister", "-KeepRunning"], capture_output=True, timeout=60)
 check("uninstaller removed exe + libraries", not (INSTALL / "Kovrel.exe").exists() and not (INSTALL / "_internal").exists())
 check("uninstaller kept a file it didn't install", dummy_note.exists())
+check("uninstaller removed the test's shortcuts", not list(LINKS.rglob("Kovrel.lnk")))
+check("uninstaller left the real shortcuts and Windows entry alone", len(before) == 4 and real_things() == before, f"{before} -> {real_things()}")
 print("\nRESULT:", f"{len(bad)} FAILED: {bad}" if bad else "all passed")
 sys.exit(1 if bad else 0)

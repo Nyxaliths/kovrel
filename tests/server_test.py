@@ -111,6 +111,25 @@ check("MAC normalised", s == 200 and d["items"][0]["mac"] == "AA:BB:CC:DD:EE:FF"
 s, d, _ = call(c, "wake", {"id": d["items"][0]["id"]}, token=T); check("magic packet sent (UDP broadcast)", s == 200)
 s, d, _ = call(c, "wake_delete", {"id": security.CFG["wake_targets"][0]["id"]}, token=T); check("wake target deleted", d["items"] == [])
 
+# ---- 2.2.1 fixes
+s, d, _ = call(c, "brightness_set", {"level": 50}, token=T)
+check("brightness_set without a screen explains itself", s == 400 and "screen" in d["error"], str(d))
+s, d, _ = call(c, "brightness_set", {"id": "ddc:x", "level": 50}, token=T)
+check("brightness_set with a made-up screen id is refused", s == 400 and "screen" in d["error"], str(d))
+s, d, _ = call(c, "window", {"action": "focus"}, token=T)
+check("a request that leaves something out says what is missing", s == 400 and "missing" in d["error"] and "id" in d["error"], str(d))
+s, d, _ = call(c, "ping", token=T); check("connection still usable after those errors", s == 200)
+typed = []
+real_send, server._send = server._send, lambda *ev: typed.extend(ev)
+try:
+    server.type_text("a\r\nb\rc\nd")
+finally:
+    server._send = real_send
+enters = sum(1 for e in typed if e.u.ki.wVk == 0x0D and not e.u.ki.dwFlags & server.KEYEVENTF_KEYUP)
+check("typing Windows line endings presses Enter once per line", enters == 3 and len(typed) == 14, f"{enters} enters, {len(typed)} events")
+s, d, _ = call(conn(), "devices", token=T)
+check("devices carry their id, so the page can mark itself", any(x["id"] == DEV for x in d["devices"]), str(d))
+
 # ---- folders: browse / traverse / upload / download
 os.makedirs(server.SHARED_DIR, exist_ok=True)
 extra = os.path.join(tmp, "Shared Stuff"); os.makedirs(os.path.join(extra, "sub"))

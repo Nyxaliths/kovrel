@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.2.1
+
+Fixes and polish from a full read-through of the code. No new settings.
+
+- **Drag on the picture.** With Left (or Right, Middle) held by a double-tap, a finger on the Screen
+  picture now drags the cursor there, so you can move a window or a file by pointing at where it
+  should go. Before, a touch on the picture clicked and quietly let go of the button while the
+  phone still said "held".
+- **Sending files tells the truth.** A file that failed to send used to end with "File sent". Now
+  the phone says what went wrong (and how many did arrive), and the progress bar starts from zero
+  for each file.
+- "Reconnected" no longer pops up every time you come back to the page, only after the connection
+  was really lost.
+- The More page's tiles fit narrow phones: "Notifications" no longer runs into the edge.
+- Settings › Connected now marks the right phone as "this one" when two phones share a name.
+- The frame counter says "Paused" only when you paused the screen, not while it is still connecting.
+- Typing text that came from Windows (copied with its line endings) pressed Enter twice per line.
+- Small things: the tour starts on **Next**, the key hints under buttons (Ctrl C, Space…) use the
+  right size, the sleep timer reads "1 h" instead of "1 h 0 min", the share window's copy button
+  has a copy icon, and the backspace key is announced by screen readers.
+- PC window: turning the update check back on looks for an update right away; "Stay signed in"
+  shows "1 day" correctly.
+- Under the hood: text from the PC is always escaped before it is shown on the status page, two
+  sign-in checks can no longer overlap while a phone waits for approval, and a monitor that refuses
+  a brightness change no longer leaks a handle.
+- For people building Kovrel: the installed-app test (`tests\exe_test.py`) used to run the uninstaller
+  against the real Desktop, Start menu and Startup shortcuts and the Settings › Apps entry. The
+  uninstaller now takes `-ShortcutDir`, `-NoRegister` and `-KeepRunning`, and the test uses them.
+
 ## 2.2.0
 
 - **Disconnect a phone from the PC window.** Each connected phone in the main window now has a
